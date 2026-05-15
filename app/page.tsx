@@ -15,12 +15,12 @@ interface ConvertedFile {
 export default function Home() {
   const [files, setFiles] = useState<ConvertedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [quality, setQuality] = useState(90);
+  const [quality, setQuality] = useState(80);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addMoreRef = useRef<HTMLInputElement>(null);
 
-  const processFiles = useCallback((rawFiles: File[], append = false) => {
+  const processFiles = useCallback((rawFiles: File[]) => {
     const heicFiles = rawFiles.filter(f =>
       f.name.toLowerCase().endsWith('.heic') ||
       f.name.toLowerCase().endsWith('.heif') ||
@@ -33,42 +33,31 @@ export default function Home() {
       return;
     }
 
-    const newEntries: ConvertedFile[] = heicFiles.map(f => ({
-      name: f.name.replace(/\.(heic|heif)$/i, '.jpg'),
-      url: '',
-      originalSize: f.size,
-      convertedSize: 0,
-      status: 'converting',
-    }));
+    heicFiles.forEach((file) => {
+      const newEntry: ConvertedFile = {
+        name: file.name.replace(/\.(heic|heif)$/i, '.jpg'),
+        url: '',
+        originalSize: file.size,
+        convertedSize: 0,
+        status: 'converting',
+      };
 
-    let startIndex = 0;
-    if (append) {
-      setFiles(prev => {
-        startIndex = prev.length;
-        return [...prev, ...newEntries];
-      });
-    } else {
-      setFiles(newEntries);
-      startIndex = 0;
-    }
+      setFiles(prev => [...prev, newEntry]);
 
-    heicFiles.forEach((file, i) => {
       const worker = new Worker('/heic-worker.js');
-      worker.postMessage({ file, index: i, quality });
+      worker.postMessage({ file, index: 0, quality });
 
       worker.onmessage = (e) => {
-        const { index, buffer, error } = e.data;
-        const globalIndex = startIndex + index;
-
+        const { buffer, error } = e.data;
         if (error) {
-          setFiles(prev => prev.map((f, idx) =>
-            idx === globalIndex ? { ...f, status: 'error', error } : f
+          setFiles(prev => prev.map(f =>
+            f === newEntry ? { ...f, status: 'error', error } : f
           ));
         } else {
           const blob = new Blob([buffer], { type: 'image/jpeg' });
           const url = URL.createObjectURL(blob);
-          setFiles(prev => prev.map((f, idx) =>
-            idx === globalIndex
+          setFiles(prev => prev.map(f =>
+            f === newEntry
               ? { ...f, status: 'done', url, convertedSize: blob.size }
               : f
           ));
@@ -76,9 +65,9 @@ export default function Home() {
         worker.terminate();
       };
 
-      worker.onerror = (e) => {
-        setFiles(prev => prev.map((f, idx) =>
-          idx === (startIndex + i) ? { ...f, status: 'error', error: e.message } : f
+      worker.onerror = (err) => {
+        setFiles(prev => prev.map(f =>
+          f === newEntry ? { ...f, status: 'error', error: err.message } : f
         ));
         worker.terminate();
       };
@@ -125,7 +114,7 @@ export default function Home() {
   const convertingCount = files.filter(f => f.status === 'converting').length;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-12 px-4">
+    <main className="min-h-screen py-12 px-4" style={{ background: 'linear-gradient(135deg, #f0f7ff 0%, #e8f0fe 50%, #f0f7ff 100%)' }}>
       <div className="max-w-2xl mx-auto">
 
         {/* Header */}
@@ -163,7 +152,7 @@ export default function Home() {
             </div>
             <input
               type="range"
-              min={60}
+              min={40}
               max={100}
               step={1}
               value={quality}
@@ -171,8 +160,11 @@ export default function Home() {
               className="w-full accent-blue-600"
             />
             <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>Smaller file size</span>
-              <span>Best quality</span>
+              <span>40% — Smallest size</span>
+              {quality === 100
+                ? <span className="text-blue-600 font-semibold animate-pulse">✨ Enhanced quality</span>
+                : <span>100% — Enhanced ✨</span>
+              }
             </div>
           </div>
 
@@ -226,7 +218,6 @@ export default function Home() {
 
               {files.map((f, i) => (
                 <div key={i} className="flex items-center gap-3 px-6 py-3.5 border-t border-gray-50">
-                  {/* File icon */}
                   <div className="w-9 h-9 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -282,7 +273,7 @@ export default function Home() {
                   accept=".heic,.heif"
                   multiple
                   className="hidden"
-                  onChange={e => { if (e.target.files) processFiles(Array.from(e.target.files), true); }}
+                  onChange={e => { if (e.target.files) processFiles(Array.from(e.target.files)); }}
                 />
                 <button
                   onClick={() => addMoreRef.current?.click()}
@@ -293,7 +284,8 @@ export default function Home() {
               </div>
             </div>
           )}
-        </div>
+
+        </div>{/* End main card */}
 
         {/* Download ZIP */}
         {doneCount > 1 && (

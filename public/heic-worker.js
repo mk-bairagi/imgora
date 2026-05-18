@@ -10,7 +10,7 @@ async function getLib() {
 }
 
 self.onmessage = async function (e) {
-  const { file, index, quality } = e.data;
+  const { file, index, quality, targetW, targetH } = e.data;
 
   try {
     const lib = await getLib();
@@ -26,12 +26,12 @@ self.onmessage = async function (e) {
     }
 
     const image = data[0];
-    const width = image.get_width();
-    const height = image.get_height();
+    const srcW = image.get_width();
+    const srcH = image.get_height();
 
     const imageData = await new Promise((resolve, reject) => {
       image.display(
-        { data: new Uint8ClampedArray(width * height * 4), width, height },
+        { data: new Uint8ClampedArray(srcW * srcH * 4), width: srcW, height: srcH },
         (result) => {
           if (!result) reject(new Error('Display failed'));
           else resolve(result);
@@ -39,9 +39,26 @@ self.onmessage = async function (e) {
       );
     });
 
-    const canvas = new OffscreenCanvas(width, height);
+    // Compute output dimensions — scale down to fit target, never upscale
+    let outW = srcW;
+    let outH = srcH;
+    if (targetW && targetH) {
+      const scale = Math.min(targetW / srcW, targetH / srcH, 1);
+      outW = Math.round(srcW * scale);
+      outH = Math.round(srcH * scale);
+    } else if (targetW && !targetH) {
+      const scale = Math.min(targetW / srcW, 1);
+      outW = Math.round(srcW * scale);
+      outH = Math.round(srcH * scale);
+    }
+
+    // Draw source at original size first, then scale to output canvas
+    const src = new OffscreenCanvas(srcW, srcH);
+    src.getContext('2d').putImageData(new ImageData(imageData.data, srcW, srcH), 0, 0);
+
+    const canvas = new OffscreenCanvas(outW, outH);
     const ctx = canvas.getContext('2d');
-    ctx.putImageData(new ImageData(imageData.data, width, height), 0, 0);
+    ctx.drawImage(src, 0, 0, outW, outH);
 
     const blob = await canvas.convertToBlob({
       type: 'image/jpeg',
@@ -49,7 +66,7 @@ self.onmessage = async function (e) {
     });
 
     const arrayBuffer = await blob.arrayBuffer();
-    self.postMessage({ index, buffer: arrayBuffer, width, height }, [arrayBuffer]);
+    self.postMessage({ index, buffer: arrayBuffer, width: outW, height: outH }, [arrayBuffer]);
 
   } catch (err) {
     self.postMessage({ index, error: err.message });

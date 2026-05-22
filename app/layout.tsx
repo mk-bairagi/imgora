@@ -43,6 +43,21 @@ export const metadata: Metadata = {
       "Convert iPhone HEIF photos to social-ready JPGs in your browser. Private, free, unlimited.",
     type: "website",
     url: "https://imgora.in/",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "imgora — HEIF to JPG converter",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "imgora — HEIF to JPG, ready for social",
+    description:
+      "Convert iPhone HEIF photos to social-ready JPGs in your browser. Private, free, unlimited.",
+    images: ["/opengraph-image"],
   },
   alternates: {
     canonical: "https://imgora.in/",

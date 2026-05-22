@@ -14,6 +14,21 @@ export const metadata: Metadata = {
       'Convert HEIF to JPG in your browser. Full resolution, best quality. Private, free, unlimited.',
     type: 'website',
     url: 'https://imgora.in/heif-to-jpg/',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'HEIF to JPG converter — imgora',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'HEIF to JPG — convert iPhone photos free · imgora',
+    description:
+      'Convert HEIF to JPG in your browser. Full resolution, best quality. Private, free, unlimited.',
+    images: ['/opengraph-image'],
   },
 };
 

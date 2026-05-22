@@ -22,12 +22,12 @@ nav.top {
 }
 .brand {
   display: flex; align-items: center; gap: 10px;
-  font-weight: 500; letter-spacing: -0.01em; color: var(--fg);
+  font-size: 18px; font-weight: 600; letter-spacing: -0.02em; color: var(--fg);
 }
-.brand-mark { width: 22px; height: 22px; display: inline-block; color: var(--fg); }
+.brand-mark { width: 26px; height: 26px; display: inline-block; color: var(--fg); }
 .brand-mark svg { display: block; width: 100%; height: 100%; }
-.brand b { font-weight: 500; }
-.brand i { font-style: normal; color: var(--fg-dim); font-weight: 400; }
+.brand b { font-weight: 600; }
+.brand i { font-style: normal; color: var(--fg-dim); font-weight: 600; font-size: 13px; }
 
 nav.top ul {
   display: flex; gap: 32px; list-style: none; padding: 0; margin: 0;
@@ -127,118 +127,122 @@ h1.headline .serif {
 .trust-row > div { display: flex; align-items: center; gap: 8px; }
 .trust-row svg { width: 14px; height: 14px; color: var(--good); }
 
-/* ============ 3D SCENE ============ */
+/* ============ 3D PHONE SCENE ============ */
 .scene-wrap {
   position: relative;
   height: clamp(440px, 65vh, 640px);
   width: 100%;
+  display: flex; align-items: center; justify-content: center;
 }
 .scene {
   position: absolute; inset: 0;
   perspective: 1400px;
   perspective-origin: 50% 50%;
+  display: flex; align-items: center; justify-content: center;
 }
 .stage3d {
-  position: absolute; inset: 0;
   transform-style: preserve-3d;
   will-change: transform;
 }
-.card3 {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform-style: preserve-3d;
-  border-radius: 14px;
+
+/* ---- Phone shell ---- */
+.phone-frame {
+  width: 240px; height: 480px;
+  border-radius: 36px;
+  border: 2px solid var(--line-2);
   background: var(--bg-2);
-  border: 1px solid var(--line);
   box-shadow:
-    0 30px 60px -25px rgba(28, 25, 23, 0.25),
-    0 8px 20px -10px rgba(28, 25, 23, 0.15);
-  overflow: hidden;
-  padding: 8px;
-}
-.card3 .pic {
-  width: 100%; height: 100%;
-  border-radius: 8px; overflow: hidden;
+    0 40px 80px -30px rgba(28,25,23,0.28),
+    0 8px 24px -10px rgba(28,25,23,0.14),
+    inset 0 0 0 1px rgba(255,255,255,0.55);
   position: relative;
-  background:
-    linear-gradient(180deg, #ffe2b5 0%, #ffb380 25%, #e87b3c 50%, #8e3f55 75%, #2d2a4a 100%);
+  overflow: hidden;
+  display: flex; flex-direction: column;
 }
-.card3 .pic::before {
-  content: ""; position: absolute; top: 16%; right: 18%;
-  width: 22%; aspect-ratio: 1; border-radius: 50%;
-  background: radial-gradient(circle, #fff7d6 0%, #ffd97a 50%, transparent 70%);
-  filter: blur(0.5px);
+.phone-notch {
+  width: 72px; height: 18px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 0 0 14px 14px;
+  margin: 0 auto;
+  flex-shrink: 0;
+  z-index: 10;
 }
-.card3 .pic .mtn {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  height: 50%;
-}
-.card3 .pic .mtn svg { width: 100%; height: 100%; display: block; }
-.card3 .label {
-  position: absolute; bottom: 16px; left: 16px; z-index: 3;
-  padding: 5px 10px; border-radius: 6px;
-  background: rgba(28, 25, 23, 0.78);
-  backdrop-filter: blur(8px);
-  color: #fff;
-  font-family: var(--mono); font-size: 10.5px; font-weight: 500;
-  border: 1px solid rgba(255,255,255,0.1);
-}
-.card3 .label .dim { color: #d6d3d1; }
-.card3.center .label { background: var(--accent); color: white; }
-
-/* Card positions in 3D space */
-.c-heif {
-  width: 230px; height: 290px;
-  margin-left: -115px; margin-top: -145px;
-  transform: translate3d(0,0,0);
-}
-.c-ig {
-  width: 130px; height: 130px;
-  margin-left: -65px; margin-top: -65px;
-  transform: translate3d(-260px,-110px,90px) rotateY(20deg) rotateX(-5deg);
-}
-.c-story {
-  width: 90px; height: 160px;
-  margin-left: -45px; margin-top: -80px;
-  transform: translate3d(255px,-140px,110px) rotateY(-25deg) rotateX(-3deg);
-}
-.c-wa {
-  width: 150px; height: 112px;
-  margin-left: -75px; margin-top: -56px;
-  transform: translate3d(-220px,110px,70px) rotateY(18deg) rotateX(5deg);
-}
-.c-tw {
-  width: 170px; height: 95px;
-  margin-left: -85px; margin-top: -47px;
-  transform: translate3d(230px,130px,95px) rotateY(-22deg) rotateX(6deg);
-}
-.c-fb {
-  width: 145px; height: 76px;
-  margin-left: -72px; margin-top: -38px;
-  transform: translate3d(0,200px,50px) rotateY(0deg) rotateX(8deg);
-}
-.c-email {
-  width: 130px; height: 73px;
-  margin-left: -65px; margin-top: -37px;
-  transform: translate3d(0,-220px,60px) rotateY(0deg) rotateX(-8deg);
+.phone-home-bar {
+  width: 60px; height: 4px;
+  background: var(--line-2);
+  border-radius: 999px;
+  margin: 6px auto 8px;
+  flex-shrink: 0;
 }
 
-/* Platform sticker pin on each card */
-.pin {
-  position: absolute; top: -10px; right: -8px;
-  width: 32px; height: 32px; border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 600; font-size: 12px; color: white;
-  background: linear-gradient(135deg, var(--g1), var(--g2));
-  box-shadow: 0 8px 18px -6px rgba(0,0,0,0.2);
-  transform: translateZ(20px);
+/* ---- Scrolling screen area ---- */
+.phone-screen {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
 }
-.c-ig    .pin { --g1: #e1306c; --g2: #f77737; }
-.c-story .pin { --g1: #833ab4; --g2: #e1306c; }
-.c-wa    .pin { --g1: #25d366; --g2: #128c7e; }
-.c-tw    .pin { --g1: #1d9bf0; --g2: #0a84d8; }
-.c-fb    .pin { --g1: #1877f2; --g2: #0e5fc6; }
-.c-email .pin { --g1: #78716c; --g2: #44403c; }
+.feed-track {
+  display: flex;
+  flex-direction: column;
+  /* Two copies × 5 cards — animation scrolls one full copy then snaps back */
+  will-change: transform;
+  animation: feed-scroll 18s linear infinite;
+}
+@keyframes feed-scroll {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-50%); }
+}
+
+/* ---- Individual post card ---- */
+.feed-card {
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.fc-topbar {
+  display: flex; align-items: center; gap: 7px;
+  margin-bottom: 8px;
+}
+.fc-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.fc-meta { flex: 1; overflow: hidden; }
+.fc-handle { font-size: 10px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-time   { font-size: 9px; color: var(--fg-dim); }
+.fc-badge  {
+  font-size: 9px; font-weight: 700; color: #fff;
+  padding: 2px 6px; border-radius: 5px;
+  flex-shrink: 0; letter-spacing: 0.02em;
+}
+
+/* Platform accent colours for avatar + badge */
+.fc-av-ig, .fc-bd-ig { background: linear-gradient(135deg, #e1306c, #f77737); }
+.fc-av-wa, .fc-bd-wa { background: linear-gradient(135deg, #25d366, #128c7e); }
+.fc-av-tw, .fc-bd-tw { background: linear-gradient(135deg, #1d9bf0, #0a84d8); }
+.fc-av-st, .fc-bd-st { background: linear-gradient(135deg, #833ab4, #e1306c); }
+.fc-av-ln, .fc-bd-ln { background: linear-gradient(135deg, #0a66c2, #084d96); }
+
+/* ---- Post image placeholder (same sunset gradient as before) ---- */
+.fc-img {
+  width: 100%; border-radius: 8px; overflow: hidden;
+  position: relative;
+  background: linear-gradient(180deg, #ffe2b5 0%, #ffb380 25%, #e87b3c 50%, #8e3f55 75%, #2d2a4a 100%);
+}
+.fc-img svg { width: 100%; height: 100%; display: block; }
+
+/* Aspect ratios matching each platform's actual output */
+.fc-img-sq  { aspect-ratio: 1 / 1; }
+.fc-img-43  { aspect-ratio: 4 / 3; }
+.fc-img-169 { aspect-ratio: 16 / 9; }
+.fc-img-916 { aspect-ratio: 9 / 16; max-height: 120px; }
+
+.fc-footer { margin-top: 6px; }
+.fc-spec {
+  font-family: var(--mono); font-size: 8.5px;
+  color: var(--fg-dim); letter-spacing: 0.02em;
+}
 
 /* ============ SECTIONS ============ */
 .landing section {
@@ -246,6 +250,7 @@ h1.headline .serif {
   max-width: 1240px; margin: 0 auto;
   position: relative;
 }
+@media (max-width: 520px) { .landing section { padding: 80px 20px; } }
 .sec-eyebrow {
   display: inline-block;
   font-size: 12px; text-transform: uppercase; letter-spacing: 0.18em;
@@ -315,7 +320,8 @@ h2.sec-title .serif {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
 }
 @media (max-width: 980px) { .plats { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 520px) { .plats { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .plats { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .plat { min-height: 160px; } }
 
 /* ============ HOW IT WORKS ============ */
 .how {

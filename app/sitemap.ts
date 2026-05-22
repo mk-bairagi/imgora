@@ -1,5 +1,7 @@
 import type { MetadataRoute } from 'next';
 
+// Next.js reads this file at build time and serves /sitemap.xml automatically.
+// Priority values signal relative importance to crawlers (1 = highest).
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {

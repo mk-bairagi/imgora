@@ -1,32 +1,18 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import '../landing.css';
 import './heif-to-jpg.css';
 
-export const metadata: Metadata = {
-  title: 'HEIF to JPG — convert iPhone photos free · imgora',
-  description:
-    'Convert HEIF to JPG free in your browser. No upload, no account. Pre-optimised for Instagram, WhatsApp, Twitter and every major platform.',
-  keywords:
-    'heif to jpg, heic to jpg, convert heif, iphone photo to jpg, heif converter online, heic converter',
-  alternates: { canonical: 'https://imgora.in/heif-to-jpg/' },
-  openGraph: {
-    title: 'HEIF to JPG — convert iPhone photos free · imgora',
-    description:
-      'Convert HEIF to JPG in your browser. Pre-optimised for Instagram, WhatsApp, Twitter and more. Private, free, unlimited.',
-    type: 'website',
-    url: 'https://imgora.in/heif-to-jpg/',
-  },
-};
-
 const faqItems = [
   {
     q: 'Is HEIF better quality than JPG?',
-    a: 'HEIF stores more colour data in a smaller file — it is more efficient. But JPG at 80 %+ quality is visually indistinguishable and opens in every app, OS, and website on earth. For sharing, JPG wins on compatibility.',
+    a: 'HEIF stores more colour data in a smaller file — it is more efficient. But JPG at 80%+ quality is visually indistinguishable and opens in every app, OS, and website on earth. For sharing, JPG wins on compatibility.',
   },
   {
     q: 'Does converting HEIF to JPG lose quality?',
-    a: 'Any lossy re-encode involves some loss. At q80 or higher it is invisible to the eye. The bigger risk is double-compression: if you upload a full-res HEIF and let Instagram re-encode it, you lose quality twice. imgora pre-tunes the JPG so the platform\'s compression is the only round.',
+    a: "Any lossy re-encode involves some loss. At q80 or higher it is invisible to the eye. The bigger risk is double-compression: if you upload a full-res HEIF and let Instagram re-encode it, you lose quality twice. imgora pre-tunes the JPG so the platform's compression is the only round.",
   },
   {
     q: 'Why does Instagram need a different JPG than WhatsApp?',
@@ -34,7 +20,7 @@ const faqItems = [
   },
   {
     q: 'Can I batch convert HEIF to JPG?',
-    a: 'Yes. Drop a whole folder of HEIFs onto the converter and you get a platform-optimised JPG for each one. You can download them individually or as a single ZIP.',
+    a: 'Yes. Drop a whole folder of HEIFs onto the converter and you get a JPG for each one. Download them individually.',
   },
   {
     q: 'Does imgora upload or store my photos?',
@@ -42,30 +28,45 @@ const faqItems = [
   },
   {
     q: 'What is the difference between HEIF and HEIC?',
-    a: '.heic is Apple\'s container for a single HEIF image. .heif is the broader standard. They are the same format — imgora converts both.',
+    a: ".heic is Apple's container for a single HEIF image. .heif is the broader standard. They are the same format — imgora converts both.",
   },
 ];
 
-const ldJson = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'WebPage',
-      name: 'HEIF to JPG — convert iPhone photos free · imgora',
-      url: 'https://imgora.in/heif-to-jpg/',
-      description:
-        'Convert HEIF to JPG free in your browser. No upload, no account. Pre-optimised for every major platform.',
-    },
-    {
-      '@type': 'FAQPage',
-      mainEntity: faqItems.map(({ q, a }) => ({
-        '@type': 'Question',
-        name: q,
-        acceptedAnswer: { '@type': 'Answer', text: a },
-      })),
-    },
-  ],
-};
+// Quality presets — value is the JPEG quality (0–100) passed to the worker
+const QUALITY_PRESETS = [
+  { label: 'Maximum',  value: 95, hint: 'Best detail · largest file' },
+  { label: 'High',     value: 85, hint: 'Great quality · smaller file' },
+  { label: 'Balanced', value: 75, hint: 'Good for sharing & email' },
+  { label: 'Small',    value: 60, hint: 'Smallest file · some loss' },
+] as const;
+
+type QualityValue = typeof QUALITY_PRESETS[number]['value'];
+
+interface FileEntry {
+  id: string;
+  file: File;
+  name: string;
+  origName: string;
+  size: number;
+  status: 'queued' | 'converting' | 'done' | 'error';
+  url?: string;
+  convertedSize?: number;
+  error?: string;
+}
+
+function fmtSize(b: number) {
+  if (b > 1024 * 1024) return (b / 1024 / 1024).toFixed(1) + ' MB';
+  if (b > 1024) return (b / 1024).toFixed(0) + ' KB';
+  return b + ' B';
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" width="14" height="14">
+      <path d="M7 2v8M3.5 7L7 10.5 10.5 7M2.5 12h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function CheckIcon() {
   return (
@@ -76,14 +77,115 @@ function CheckIcon() {
 }
 
 export default function HeifToJpgPage() {
+  const [files, setFiles] = useState<FileEntry[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [quality, setQuality] = useState<QualityValue>(95);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Takes entries already added to state and runs each through the worker.
+  // quality is passed as a param so it captures the value at call time, not from stale closure.
+  const convertEntries = useCallback((entries: FileEntry[], q: number) => {
+    if (entries.length === 0) return;
+    setIsConverting(true);
+
+    Promise.all(
+      entries.map(entry =>
+        new Promise<void>(resolve => {
+          setFiles(prev =>
+            prev.map(f => f.id === entry.id ? { ...f, status: 'converting' } : f)
+          );
+          const worker = new Worker('/heic-worker.js');
+          // targetW/targetH null = keep original dimensions
+          worker.postMessage({ file: entry.file, index: 0, quality: q, targetW: null, targetH: null, stripExif: true });
+          worker.onmessage = (e) => {
+            const { buffer, error } = e.data;
+            if (error) {
+              setFiles(prev =>
+                prev.map(f => f.id === entry.id ? { ...f, status: 'error', error } : f)
+              );
+            } else {
+              const blob = new Blob([buffer], { type: 'image/jpeg' });
+              const url = URL.createObjectURL(blob);
+              const base = entry.origName.replace(/\.(heic|heif)$/i, '');
+              setFiles(prev =>
+                prev.map(f => f.id === entry.id
+                  ? { ...f, status: 'done', url, name: base + '.jpg', convertedSize: blob.size }
+                  : f
+                )
+              );
+            }
+            worker.terminate();
+            resolve();
+          };
+          worker.onerror = () => {
+            setFiles(prev =>
+              prev.map(f => f.id === entry.id ? { ...f, status: 'error', error: 'Conversion failed' } : f)
+            );
+            worker.terminate();
+            resolve();
+          };
+        })
+      )
+    ).then(() => setIsConverting(false));
+  }, []);
+
+  // Build entries, add to state, then immediately start conversion with current quality
+  const addFiles = useCallback((rawFiles: File[], q: number) => {
+    const valid = rawFiles.filter(f =>
+      f.name.toLowerCase().endsWith('.heic') ||
+      f.name.toLowerCase().endsWith('.heif') ||
+      f.type === 'image/heic' ||
+      f.type === 'image/heif'
+    );
+    if (valid.length === 0) {
+      alert('Please drop .heic or .heif files.');
+      return;
+    }
+    const newEntries: FileEntry[] = valid.map(f => ({
+      id: crypto.randomUUID(),
+      file: f,
+      name: f.name,
+      origName: f.name,
+      size: f.size,
+      status: 'queued' as const,
+    }));
+    setFiles(prev => [...prev, ...newEntries]);
+    // Pass entries directly — can't rely on updated state since setFiles is async
+    convertEntries(newEntries, q);
+  }, [convertEntries]);
+
+  const activePreset = QUALITY_PRESETS.find(p => p.value === quality) ?? QUALITY_PRESETS[0];
+  const hasFiles = files.length > 0;
+
   return (
     <div className="landing">
+      {/* Schema.org JSON-LD for Google rich results */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(ldJson) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': 'WebPage',
+                name: 'HEIF to JPG — convert iPhone photos free · imgora',
+                url: 'https://imgora.in/heif-to-jpg/',
+                description: 'Convert HEIF to JPG free in your browser. No upload, no account. Best quality output.',
+              },
+              {
+                '@type': 'FAQPage',
+                mainEntity: faqItems.map(({ q, a }) => ({
+                  '@type': 'Question',
+                  name: q,
+                  acceptedAnswer: { '@type': 'Answer', text: a },
+                })),
+              },
+            ],
+          }),
+        }}
       />
 
-      {/* Ambient blobs */}
       <div className="blob blob-a" />
       <div className="blob blob-b" />
       <div className="blob blob-c" />
@@ -100,44 +202,139 @@ export default function HeifToJpgPage() {
           <span><b>imgora</b><i>.in</i></span>
         </Link>
         <ul>
-          <li><Link href="/#platforms">For social</Link></li>
-          <li><Link href="/#how">How it works</Link></li>
-          <li><Link href="/#faq">FAQ</Link></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#platforms">Platforms</a></li>
+          <li><a href="#faq">FAQ</a></li>
         </ul>
         <div className="nav-cta">
-          <Link href="/converter" className="btn primary">Open converter</Link>
+          <Link href="/converter" className="btn primary">All platforms</Link>
         </div>
       </nav>
 
-      {/* HERO — centered, no 3D scene */}
-      <div className="hero-centered">
+      {/* HERO + CONVERTER */}
+      <div className="htj-hero">
         <div className="eyebrow">
           <span className="dot" />
-          Free converter · 100% browser-based · No upload
+          Free · 100% browser-based · No upload
         </div>
 
         <h1 className="headline">
           HEIF to JPG —<br />
-          <span className="serif">convert iPhone photos</span><br />
-          in seconds.
+          <span className="serif">best quality, one click.</span>
         </h1>
 
         <p className="sub">
-          Convert any .heif or .heic file to a JPG that opens everywhere — sized and
-          colour-tuned for Instagram, WhatsApp, or wherever you&rsquo;re sharing it.
-          All in your browser. Zero upload.
+          Drop any .heif or .heic file. imgora converts it to a full-resolution JPG —
+          no resize, no upload, EXIF stripped. Opens everywhere.
         </p>
 
-        <div className="hero-cta">
-          <Link href="/converter" className="btn primary lg">Convert HEIF → JPG</Link>
-          <a href="#platforms" className="btn lg">See platform presets</a>
-        </div>
-
-        <div className="trust-row">
+        <div className="trust-row" style={{ justifyContent: 'center', marginBottom: '40px' }}>
           <div><CheckIcon /> 100% private</div>
           <div><CheckIcon /> Free &amp; unlimited</div>
           <div><CheckIcon /> No signup</div>
         </div>
+
+        {/* QUALITY PICKER */}
+        <div className="htj-quality">
+          <div className="htj-quality-label">
+            <span>Output quality</span>
+            <span className="htj-quality-hint">{activePreset.hint}</span>
+          </div>
+          <div className="htj-quality-pills">
+            {QUALITY_PRESETS.map(p => (
+              <button
+                key={p.value}
+                type="button"
+                className={`htj-qpill${quality === p.value ? ' active' : ''}`}
+                onClick={() => setQuality(p.value)}
+              >
+                <span className="htj-qpill-label">{p.label}</span>
+                <span className="htj-qpill-value">q{p.value}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* DROPZONE */}
+        <div
+          className={`htj-drop${isDragOver ? ' over' : ''}${hasFiles ? ' compact' : ''}`}
+          onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
+          onDragEnter={e => { e.preventDefault(); setIsDragOver(true); }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={e => { e.preventDefault(); setIsDragOver(false); addFiles(Array.from(e.dataTransfer.files), quality); }}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <div className="htj-drop-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3v14M5 10l7-7 7 7M3 21h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <h2>{hasFiles ? 'Add more files' : 'Drop your HEIF photos here'}</h2>
+          <p>{hasFiles ? `${files.length} file${files.length > 1 ? 's' : ''} in queue · click to add more` : '.heic / .heif · from iPhone or AirDrop'}</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,.heif,.heic"
+            aria-label="Choose HEIF or HEIC files to convert"
+            style={{ display: 'none' }}
+            onChange={e => { if (e.target.files) addFiles(Array.from(e.target.files), quality); e.target.value = ''; }}
+          />
+          <button
+            type="button"
+            className="btn primary"
+            onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
+          >
+            Choose files
+          </button>
+          {!hasFiles && <p className="htj-privacy">Your photos never leave this device.</p>}
+        </div>
+
+        {/* FILE LIST */}
+        {hasFiles && (
+          <div className="htj-files">
+            {files.map(f => (
+              <div key={f.id} className="htj-file" data-status={f.status}>
+                <div className="htj-thumb">{f.origName.split('.').pop()?.toUpperCase().slice(0, 4)}</div>
+                <div className="htj-info">
+                  <div className="htj-name">{f.name}</div>
+                  <div className="htj-meta">
+                    {fmtSize(f.size)}
+                    {f.status === 'done' && f.convertedSize != null && <> → {fmtSize(f.convertedSize)}</>}
+                    {f.status === 'error' && f.error && <> · {f.error}</>}
+                  </div>
+                </div>
+                <div className={`htj-status ${f.status}`}>
+                  {f.status === 'converting' ? (
+                    <span className="htj-spinner" aria-label="Converting" />
+                  ) : f.status}
+                </div>
+                {f.status === 'done' && f.url
+                  ? (
+                    <a href={f.url} download={f.name} className="htj-dl-btn" aria-label={`Download ${f.name}`}>
+                      <DownloadIcon /> Download
+                    </a>
+                  ) : (
+                    <span className="htj-dl-btn disabled" aria-hidden="true">
+                      <DownloadIcon /> Download
+                    </span>
+                  )
+                }
+              </div>
+            ))}
+            <div className="htj-actions">
+              <span className="htj-hint">
+                {isConverting ? 'Converting…' : 'Done'} · q{quality} · original size · EXIF stripped
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Upsell to platform converter */}
+        <p className="htj-upsell">
+          Need it sized for Instagram, WhatsApp or Twitter?{' '}
+          <Link href="/converter">Use the platform converter →</Link>
+        </p>
       </div>
 
       {/* WHAT IS HEIF */}
@@ -148,7 +345,6 @@ export default function HeifToJpgPage() {
           iPhones have shot HEIF by default since iOS 11. It is a brilliant format — but the
           rest of the world has not caught up yet.
         </p>
-
         <div className="info-grid">
           <div className="info-card">
             <div className="card-icon">
@@ -159,13 +355,8 @@ export default function HeifToJpgPage() {
               </svg>
             </div>
             <h4>iPhones shoot HEIF by default</h4>
-            <p>
-              Since iOS 11, every iPhone captures photos in HEIF (High Efficiency Image Format).
-              It stores richer colour in a smaller file — great for your camera roll, invisible
-              problem until you try to share it.
-            </p>
+            <p>Since iOS 11, every iPhone captures photos in HEIF. It stores richer colour in a smaller file — great for your camera roll, invisible problem until you try to share it.</p>
           </div>
-
           <div className="info-card">
             <div className="card-icon">
               <svg viewBox="0 0 20 20" fill="none">
@@ -174,13 +365,8 @@ export default function HeifToJpgPage() {
               </svg>
             </div>
             <h4>JPG opens everywhere</h4>
-            <p>
-              Every app, OS, and website accepts JPG. Email clients, Windows, Android, every
-              social platform — converting gives you a file that just works, no matter where it
-              lands.
-            </p>
+            <p>Every app, OS, and website accepts JPG. Email clients, Windows, Android, every social platform — converting gives you a file that just works, no matter where it lands.</p>
           </div>
-
           <div className="info-card">
             <div className="card-icon">
               <svg viewBox="0 0 20 20" fill="none">
@@ -188,49 +374,7 @@ export default function HeifToJpgPage() {
               </svg>
             </div>
             <h4>One round of compression</h4>
-            <p>
-              Social platforms re-encode whatever you upload. Upload a raw HEIF and they
-              compress it twice. imgora pre-tunes the JPG so the platform&rsquo;s re-encode
-              is the only round that happens.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* DOUBLE COMPRESSION EXPLAINER */}
-      <section>
-        <div className="sec-eyebrow">Why quality matters</div>
-        <h2 className="sec-title">The double-compression <span className="serif">problem.</span></h2>
-        <p className="sec-sub">
-          Uploading a full-resolution HEIF to Instagram is not the same as uploading a
-          pre-optimised JPG. The difference is one extra round of lossy compression.
-        </p>
-
-        <div className="compression-block">
-          <div className="compression-col bad">
-            <div className="col-label">Without imgora</div>
-            <h4>Compressed twice</h4>
-            <p>
-              Your iPhone HEIF → Instagram converts it to JPG internally → Instagram
-              re-compresses on upload. Every step degrades quality. You have no control
-              over either round.
-            </p>
-          </div>
-
-          <div className="compression-arrow" aria-hidden="true">
-            <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-
-          <div className="compression-col good">
-            <div className="col-label">With imgora</div>
-            <h4>Compressed once</h4>
-            <p>
-              imgora converts your HEIF to a JPG sized and tuned for Instagram&#39;s exact
-              spec. Instagram re-compresses — but this is the first and only lossy round.
-              You keep every pixel of quality that matters.
-            </p>
+            <p>Social platforms re-encode whatever you upload. Upload a raw HEIF and they compress it twice. imgora converts first so the platform&rsquo;s re-encode is the only lossy round.</p>
           </div>
         </div>
       </section>
@@ -239,41 +383,33 @@ export default function HeifToJpgPage() {
       <section id="how">
         <div className="sec-eyebrow">How it works</div>
         <h2 className="sec-title">Three steps. <span className="serif">No surprises.</span></h2>
-
         <div className="how">
-          <div className="step">
-            <div>
-              <div className="step-num">01</div>
-              <h4>Drop your HEIF</h4>
-              <p>Drag any .heif or .heic photo straight from your iPhone, AirDrop folder or downloads.</p>
-            </div>
-          </div>
-          <div className="step">
-            <div>
-              <div className="step-num">02</div>
-              <h4>Pick a platform</h4>
-              <p>Tap the place you&rsquo;re going to share it. We handle the size, quality and colour profile.</p>
-            </div>
-          </div>
-          <div className="step">
-            <div>
-              <div className="step-num">03</div>
-              <h4>Download &amp; post</h4>
-              <p>A ready-to-share JPG lands on your device the moment it&rsquo;s done.</p>
-            </div>
-          </div>
+          <div className="step"><div>
+            <div className="step-num">01</div>
+            <h4>Pick quality &amp; drop</h4>
+            <p>Choose your quality level, then drag any .heif or .heic photo straight from your iPhone or AirDrop folder.</p>
+          </div></div>
+          <div className="step"><div>
+            <div className="step-num">02</div>
+            <h4>Auto-converts</h4>
+            <p>imgora immediately decodes the HEIC and re-encodes it as a full-resolution JPG at your chosen quality — no button needed.</p>
+          </div></div>
+          <div className="step"><div>
+            <div className="step-num">03</div>
+            <h4>Download &amp; share</h4>
+            <p>Hit the Download button — a ready-to-use JPG saves to your device instantly.</p>
+          </div></div>
         </div>
       </section>
 
       {/* PLATFORM GRID */}
       <section id="platforms">
-        <div className="sec-eyebrow">For every platform</div>
+        <div className="sec-eyebrow">Need platform-specific output?</div>
         <h2 className="sec-title">One HEIF. <span className="serif">Eight perfect JPGs.</span></h2>
         <p className="sec-sub">
           Pick where you&rsquo;re sharing and imgora sizes, compresses, and colour-tunes the
           JPG to exactly what that platform wants.
         </p>
-
         <div className="plats">
           <Link href="/converter?pf=instagram" className="plat" data-pf="instagram">
             <div className="plat-icon">IG</div>
@@ -330,7 +466,6 @@ export default function HeifToJpgPage() {
       <section id="faq">
         <div className="sec-eyebrow">FAQ</div>
         <h2 className="sec-title">HEIF to JPG, <span className="serif">answered.</span></h2>
-
         <div className="faq" style={{ marginTop: '50px' }}>
           {faqItems.map(({ q, a }, i) => (
             <details key={i} className="qa" open={i === 0}>
@@ -340,16 +475,6 @@ export default function HeifToJpgPage() {
           ))}
         </div>
       </section>
-
-      {/* CTA */}
-      <div className="cta-block">
-        <h3>
-          Stop AirDropping back to yourself.<br />
-          <span className="serif">Convert one in 3 seconds.</span>
-        </h3>
-        <p>Open the converter, drop a HEIF, pick where you&rsquo;re sharing it. That&rsquo;s the whole onboarding.</p>
-        <Link href="/converter" className="btn primary lg">Open converter →</Link>
-      </div>
 
       {/* FOOTER */}
       <footer>
@@ -369,8 +494,8 @@ export default function HeifToJpgPage() {
           <div className="foot-links">
             <Link href="/converter">Converter</Link>
             <Link href="/heif-to-jpg">HEIF → JPG</Link>
-            <Link href="/#platforms">Platforms</Link>
-            <Link href="/#faq">FAQ</Link>
+            <a href="#platforms">Platforms</a>
+            <a href="#faq">FAQ</a>
           </div>
         </div>
         <div className="foot-bottom">

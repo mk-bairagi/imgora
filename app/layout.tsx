@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Neuton, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
+// Each font is loaded via next/font/google which self-hosts the files at build time.
+// CSS variables are injected on <html> so any component can reference them via var(--font-*).
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -12,20 +14,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const instrumentSerif = Instrument_Serif({
-  weight: ["400"],
+// Neuton is used for decorative accent words in headings
+const neuton = Neuton({
+  weight: ["400", "700"],
   style: ["normal", "italic"],
   subsets: ["latin"],
-  variable: "--font-instrument-serif",
+  variable: "--font-instrument-serif", // keeps the same CSS variable so no other files need changing
 });
 
+// JetBrains Mono is used for version/code labels in the footer
 const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500"],
   subsets: ["latin"],
   variable: "--font-jetbrains-mono",
 });
 
+// Site-wide default metadata — individual pages override title/description as needed
 export const metadata: Metadata = {
+  metadataBase: new URL("https://imgora.in"),
   title: "imgora — HEIF to JPG converter · optimised for Instagram, WhatsApp & more",
   description:
     "Convert iPhone HEIF photos to JPG with one click — pre-optimised for Instagram, WhatsApp, Twitter, Facebook and email. 100% browser-based. Free. Private.",
@@ -49,9 +55,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // Font CSS variables are applied on <html> so they cascade to every child component
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${neuton.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

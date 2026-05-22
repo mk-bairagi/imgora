@@ -6,6 +6,8 @@ import Link from 'next/link';
 import JSZip from 'jszip';
 import './converter.css';
 
+// Each preset defines the recommended dimensions and JPEG quality for a specific platform.
+// c1/c2 are gradient accent colours used in the UI badge for that platform.
 const PRESETS = [
   { pf: 'instagram', name: 'Instagram · Post',    label: 'IG', dim: '1080 × 1080', q: 85,  c1: '#e1306c', c2: '#f77737' },
   { pf: 'ig-story',  name: 'Instagram · Story',   label: 'ST', dim: '1080 × 1920', q: 85,  c1: '#833ab4', c2: '#e1306c' },
@@ -19,22 +21,25 @@ const PRESETS = [
   { pf: 'custom',    name: 'Custom',               label: '✎',  dim: 'original',    q: 90,  c1: '#a8a29e', c2: '#78716c' },
 ] as const;
 
+// Derive the union type from the PRESETS array so it stays in sync automatically
 type PlatformKey = typeof PRESETS[number]['pf'];
 
+// Tracks the state of each file in the queue from drop to download
 interface FileEntry {
   id: string;
-  file: File;
-  name: string;
-  origName: string;
-  size: number;
+  file: File;        // original File object passed to the Web Worker
+  name: string;      // output filename (may include platform suffix after conversion)
+  origName: string;  // original filename, used to build the output name
+  size: number;      // original file size in bytes
   status: 'queued' | 'converting' | 'done' | 'error';
-  url?: string;
-  convertedSize?: number;
-  error?: string;
+  url?: string;           // blob URL for the converted JPEG, set when status = 'done'
+  convertedSize?: number; // output file size in bytes
+  error?: string;         // error message when status = 'error'
 }
 
+// Parse a human-readable dimension string into pixel numbers.
+// "1080 × 1080" → {w:1080, h:1080}, "1920 wide" → {w:1920, h:null}, "original" → {w:null, h:null}
 function parseDim(dim: string): { w: number | null; h: number | null } {
-  // "1080 × 1080" → {w:1080, h:1080}, "1920 wide" → {w:1920, h:null}, "original" → {w:null, h:null}
   const both = dim.match(/(\d+)\s*[×x]\s*(\d+)/);
   if (both) return { w: Number(both[1]), h: Number(both[2]) };
   const wide = dim.match(/(\d+)\s*wide/);
@@ -42,6 +47,7 @@ function parseDim(dim: string): { w: number | null; h: number | null } {
   return { w: null, h: null };
 }
 
+// Format raw bytes into a human-readable string (B / KB / MB)
 function fmtSize(b: number) {
   if (b > 1024 * 1024) return (b / 1024 / 1024).toFixed(1) + ' MB';
   if (b > 1024) return (b / 1024).toFixed(0) + ' KB';
@@ -56,24 +62,28 @@ function DownloadIcon() {
   );
 }
 
+// Inner component is separated so it can safely call useSearchParams() inside a Suspense boundary
 function ConverterContent() {
   const searchParams = useSearchParams();
   const pfParam = searchParams.get('pf') as PlatformKey | null;
+  // If a valid ?pf= query param is present (e.g. linked from the landing page), pre-select it
   const initialPf: PlatformKey =
     pfParam && PRESETS.find(p => p.pf === pfParam) ? pfParam : 'instagram';
 
   const [activePf, setActivePf] = useState<PlatformKey>(initialPf);
-  const [customQ, setCustomQ] = useState(90);
-  const [stripExif, setStripExif] = useState(true);
-  const [bundleZip, setBundleZip] = useState(false);
+  const [customQ, setCustomQ] = useState(90);          // quality only used when activePf === 'custom'
+  const [stripExif, setStripExif] = useState(true);    // default: strip location & metadata for privacy
+  const [bundleZip, setBundleZip] = useState(false);   // when true, show "Download ZIP" button after conversion
   const [files, setFiles] = useState<FileEntry[]>([]);
-  const [isDragOver, setIsDragOver] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false); // highlights the dropzone during drag
   const [isConverting, setIsConverting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const preset = PRESETS.find(p => p.pf === activePf) ?? PRESETS[0];
+  // Use the preset's fixed quality except for the "custom" platform where the user sets it via slider
   const quality = activePf === 'custom' ? customQ : preset.q;
 
+  // Filter incoming files to HEIC/HEIF only, then append them to the queue
   const addFiles = useCallback((rawFiles: File[]) => {
     const valid = rawFiles.filter(f =>
       f.name.toLowerCase().endsWith('.heic') ||
@@ -98,6 +108,7 @@ function ConverterContent() {
     ]);
   }, []);
 
+  // Convert every queued file in parallel, each in its own Web Worker
   const convertAll = useCallback(async () => {
     const toConvert = files.filter(f => f.status === 'queued');
     if (toConvert.length === 0) return;
@@ -106,12 +117,16 @@ function ConverterContent() {
     await Promise.all(
       toConvert.map(entry =>
         new Promise<void>(resolve => {
+          // Mark as "converting" immediately so the UI shows a spinner
           setFiles(prev =>
             prev.map(f => f.id === entry.id ? { ...f, status: 'converting' } : f)
           );
           const { w: targetW, h: targetH } = parseDim(preset.dim);
+
+          // Spawn a dedicated worker per file — they run truly in parallel
           const worker = new Worker('/heic-worker.js');
           worker.postMessage({ file: entry.file, index: 0, quality, targetW, targetH, stripExif });
+
           worker.onmessage = (e) => {
             const { buffer, error } = e.data;
             if (error) {
@@ -119,8 +134,10 @@ function ConverterContent() {
                 prev.map(f => f.id === entry.id ? { ...f, status: 'error', error } : f)
               );
             } else {
+              // Turn the transferred ArrayBuffer into a blob URL the browser can download directly
               const blob = new Blob([buffer], { type: 'image/jpeg' });
               const url = URL.createObjectURL(blob);
+              // Append a platform suffix to the filename so e.g. "photo_instagram.jpg" is clear
               const base = entry.origName.replace(/\.(heic|heif)$/i, '');
               const suffix = activePf !== 'custom' ? '_' + activePf : '';
               setFiles(prev =>
@@ -133,6 +150,7 @@ function ConverterContent() {
             worker.terminate();
             resolve();
           };
+
           worker.onerror = () => {
             setFiles(prev =>
               prev.map(f => f.id === entry.id ? { ...f, status: 'error', error: 'Conversion failed' } : f)
@@ -146,6 +164,7 @@ function ConverterContent() {
     setIsConverting(false);
   }, [files, quality, activePf]);
 
+  // Fetch all converted blobs by their object URLs and bundle them into a single ZIP download
   const downloadZip = useCallback(async () => {
     const done = files.filter(f => f.status === 'done' && f.url);
     if (!done.length) return;
@@ -155,6 +174,7 @@ function ConverterContent() {
       zip.file(f.name, await res.blob());
     }
     const blob = await zip.generateAsync({ type: 'blob' });
+    // Trigger browser download by creating a temporary <a> and clicking it programmatically
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'imgora-export.zip';
@@ -399,6 +419,8 @@ function ConverterContent() {
   );
 }
 
+// Suspense wrapper is required because ConverterContent calls useSearchParams(),
+// which needs a client-side Suspense boundary in the Next.js App Router
 export default function ConverterPage() {
   return (
     <Suspense>

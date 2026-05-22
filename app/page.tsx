@@ -23,20 +23,26 @@ function CheckIcon() {
 }
 
 export default function Home() {
+  // stageRef is the element that gets CSS 3D rotated; sceneRef is the outer container
+  // used to measure cursor position relative to the scene
   const stageRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
 
-  // 3D scene mouse parallax + auto-orbit
+  // 3D scene: combines a slow sine-wave auto-orbit with mouse/touch parallax.
+  // Lerp (0.06 factor) smooths the rotation so it eases rather than snapping.
   useEffect(() => {
     const stage = stageRef.current;
     const scene = sceneRef.current;
     if (!stage || !scene) return;
 
+    // mouseRX/mouseRY are the target offset driven by cursor position
     let mouseRX = 0, mouseRY = 0;
+    // curRX/curRY are the actual current rotation angles (lerped toward target each frame)
     let curRX = -6, curRY = -10;
     const t0 = performance.now();
     let rafId: number;
 
+    // Map cursor position within the scene to rotation angles (-0.5..0.5 normalised)
     const onMove = (e: { clientX: number; clientY: number }) => {
       const r = scene.getBoundingClientRect();
       const cx = (e.clientX - r.left) / r.width - 0.5;
@@ -47,14 +53,17 @@ export default function Home() {
 
     const onMouseMove = (e: MouseEvent) => onMove(e);
     const onTouchMove = (e: TouchEvent) => { if (e.touches[0]) onMove(e.touches[0]); };
+    // Reset mouse influence when the cursor leaves the scene
     const onMouseLeave = () => { mouseRX = 0; mouseRY = 0; };
 
     const tick = () => {
       const t = (performance.now() - t0) / 1000;
+      // Slow independent sine waves on each axis for the idle orbit
       const autoRY = Math.sin(t * 0.35) * 8;
       const autoRX = Math.sin(t * 0.5 + 1) * 3;
       const targetRY = autoRY + mouseRY;
-      const targetRX = autoRX + mouseRX - 6;
+      const targetRX = autoRX + mouseRX - 6; // -6 tilts the stage slightly toward the viewer
+      // Lerp toward target — 0.06 gives a ~16-frame ease-in feel
       curRY += (targetRY - curRY) * 0.06;
       curRX += (targetRX - curRX) * 0.06;
       stage.style.transform = `rotateX(${curRX}deg) rotateY(${curRY}deg)`;
@@ -74,7 +83,8 @@ export default function Home() {
     };
   }, []);
 
-  // Scroll reveal
+  // Scroll-reveal: any element with class "reveal" fades+slides in when it enters the viewport.
+  // Styles are applied via JS rather than CSS so they only activate after the observer fires.
   useEffect(() => {
     const io = new IntersectionObserver(
       (entries) => {
@@ -85,7 +95,7 @@ export default function Home() {
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 } // trigger when 10% of the element is visible
     );
     document.querySelectorAll('.reveal').forEach((el) => {
       (el as HTMLElement).style.opacity = '0';
@@ -143,7 +153,7 @@ export default function Home() {
           </p>
 
           <div className="hero-cta">
-            <Link href="/converter" className="btn primary lg">Convert HEIF → JPG</Link>
+            <Link href="/heif-to-jpg" className="btn primary lg">Convert HEIF → JPG</Link>
             <a href="#platforms" className="btn lg">See platform presets</a>
           </div>
 
@@ -154,52 +164,74 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 3D SCENE */}
+        {/* PHONE MOCKUP — tilts with mouse via stageRef */}
         <div className="scene-wrap" aria-hidden="true">
           <div className="scene" ref={sceneRef}>
             <div className="stage3d" ref={stageRef}>
-              {/* Center HEIF source */}
-              <div className="card3 c-heif center">
-                <div className="pic">
-                  <div className="mtn"><MtnSvg /></div>
+              <div className="phone-frame">
+                {/* Notch */}
+                <div className="phone-notch" />
+                {/* Scrolling feed of platform post cards — loops infinitely */}
+                <div className="phone-screen">
+                  <div className="feed-track">
+                    {/* Cards duplicated so the CSS loop animation is seamless */}
+                    {[0, 1].map(copy => (
+                      <div key={copy} className="feed-cards">
+                        <div className="feed-card fc-ig">
+                          <div className="fc-topbar">
+                            <div className="fc-avatar fc-av-ig" />
+                            <div className="fc-meta"><div className="fc-handle">your_shot</div><div className="fc-time">just now</div></div>
+                            <div className="fc-badge fc-bd-ig">IG</div>
+                          </div>
+                          <div className="fc-img fc-img-sq"><MtnSvg /></div>
+                          <div className="fc-footer"><span className="fc-spec">1080 × 1080 · JPG · 85%</span></div>
+                        </div>
+
+                        <div className="feed-card fc-wa">
+                          <div className="fc-topbar">
+                            <div className="fc-avatar fc-av-wa" />
+                            <div className="fc-meta"><div className="fc-handle">WhatsApp</div><div className="fc-time">sent</div></div>
+                            <div className="fc-badge fc-bd-wa">WA</div>
+                          </div>
+                          <div className="fc-img fc-img-43"><MtnSvg /></div>
+                          <div className="fc-footer"><span className="fc-spec">1600 × 1200 · JPG · 78%</span></div>
+                        </div>
+
+                        <div className="feed-card fc-tw">
+                          <div className="fc-topbar">
+                            <div className="fc-avatar fc-av-tw" />
+                            <div className="fc-meta"><div className="fc-handle">@yourhandle</div><div className="fc-time">1m</div></div>
+                            <div className="fc-badge fc-bd-tw">𝕏</div>
+                          </div>
+                          <div className="fc-img fc-img-169"><MtnSvg /></div>
+                          <div className="fc-footer"><span className="fc-spec">1600 × 900 · JPG · 85%</span></div>
+                        </div>
+
+                        <div className="feed-card fc-st">
+                          <div className="fc-topbar">
+                            <div className="fc-avatar fc-av-st" />
+                            <div className="fc-meta"><div className="fc-handle">Story</div><div className="fc-time">now</div></div>
+                            <div className="fc-badge fc-bd-st">ST</div>
+                          </div>
+                          <div className="fc-img fc-img-916"><MtnSvg /></div>
+                          <div className="fc-footer"><span className="fc-spec">1080 × 1920 · JPG · 85%</span></div>
+                        </div>
+
+                        <div className="feed-card fc-ln">
+                          <div className="fc-topbar">
+                            <div className="fc-avatar fc-av-ln" />
+                            <div className="fc-meta"><div className="fc-handle">LinkedIn</div><div className="fc-time">now</div></div>
+                            <div className="fc-badge fc-bd-ln">in</div>
+                          </div>
+                          <div className="fc-img fc-img-169"><MtnSvg /></div>
+                          <div className="fc-footer"><span className="fc-spec">1200 × 627 · JPG · 85%</span></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="label">sunset<span className="dim">.heif</span> · 3.2 MB</div>
-              </div>
-
-              <div className="card3 c-ig">
-                <div className="pin">IG</div>
-                <div className="pic"><div className="mtn"><MtnSvg /></div></div>
-                <div className="label">1080² · 540 KB</div>
-              </div>
-
-              <div className="card3 c-story">
-                <div className="pin">ST</div>
-                <div className="pic"><div className="mtn"><MtnSvg /></div></div>
-                <div className="label">9:16 · 620 KB</div>
-              </div>
-
-              <div className="card3 c-wa">
-                <div className="pin">WA</div>
-                <div className="pic"><div className="mtn"><MtnSvg /></div></div>
-                <div className="label">1600×1200 · 310 KB</div>
-              </div>
-
-              <div className="card3 c-tw">
-                <div className="pin">𝕏</div>
-                <div className="pic"><div className="mtn"><MtnSvg /></div></div>
-                <div className="label">1600×900 · 420 KB</div>
-              </div>
-
-              <div className="card3 c-fb">
-                <div className="pin">F</div>
-                <div className="pic"><div className="mtn"><MtnSvg /></div></div>
-                <div className="label">1200×630 · 280 KB</div>
-              </div>
-
-              <div className="card3 c-email">
-                <div className="pin">@</div>
-                <div className="pic"><div className="mtn"><MtnSvg /></div></div>
-                <div className="label">1920×1080 · 240 KB</div>
+                {/* Home indicator bar at the bottom of the phone */}
+                <div className="phone-home-bar" />
               </div>
             </div>
           </div>
@@ -333,7 +365,7 @@ export default function Home() {
           <span className="serif">Convert one in 3 seconds.</span>
         </h3>
         <p>Open the converter, drop a HEIF, pick where you&rsquo;re sharing it. That&rsquo;s the whole onboarding.</p>
-        <Link href="/converter" className="btn primary lg">Open converter →</Link>
+        <Link href="/heif-to-jpg" className="btn primary lg">Convert HEIF → JPG →</Link>
       </div>
 
       {/* FOOTER */}

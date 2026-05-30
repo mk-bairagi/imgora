@@ -1,18 +1,31 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import './landing.css';
 
-function MtnSvg() {
-  return (
-    <svg viewBox="0 0 400 200" preserveAspectRatio="none">
-      <path d="M0,140 L60,90 L100,110 L160,60 L220,100 L280,50 L340,90 L400,70 L400,200 L0,200 Z" fill="#4a334d" opacity="0.9"/>
-      <path d="M0,160 L50,130 L110,150 L180,110 L240,140 L310,120 L400,150 L400,200 L0,200 Z" fill="#291f3d" opacity="0.95"/>
-      <path d="M0,185 L60,175 L140,180 L220,170 L300,180 L400,175 L400,200 L0,200 Z" fill="#13102a"/>
-    </svg>
-  );
+const FeedImage = ({ src, heightClass = "h-32" }: { src: string; heightClass?: string }) => (
+  <div className={`feed-image relative w-full ${heightClass} overflow-hidden group bg-gray-100`}>
+    <img src={src} alt="Feed content" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+  </div>
+);
+
+function useCounter(end: number, duration = 2000, start = 0) {
+  const [count, setCount] = useState(start);
+  useEffect(() => {
+    let startTime: number | null = null;
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(easeOut * (end - start) + start));
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [end, duration, start]);
+  return count;
 }
+
 
 function CheckIcon() {
   return (
@@ -23,63 +36,27 @@ function CheckIcon() {
 }
 
 export default function Home() {
-  // stageRef is the element that gets CSS 3D rotated; sceneRef is the outer container
-  // used to measure cursor position relative to the scene
-  const stageRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [justDropped, setJustDropped] = useState(false);
+  const savedPercent = useCounter(85, 2500);
 
-  // 3D scene: combines a slow sine-wave auto-orbit with mouse/touch parallax.
-  // Lerp (0.06 factor) smooths the rotation so it eases rather than snapping.
+  // Drag & drop listeners for phone overlay effect
   useEffect(() => {
-    const stage = stageRef.current;
-    const scene = sceneRef.current;
-    if (!stage || !scene) return;
-
-    // mouseRX/mouseRY are the target offset driven by cursor position
-    let mouseRX = 0, mouseRY = 0;
-    // curRX/curRY are the actual current rotation angles (lerped toward target each frame)
-    let curRX = -6, curRY = -10;
-    const t0 = performance.now();
-    let rafId: number;
-
-    // Map cursor position within the scene to rotation angles (-0.5..0.5 normalised)
-    const onMove = (e: { clientX: number; clientY: number }) => {
-      const r = scene.getBoundingClientRect();
-      const cx = (e.clientX - r.left) / r.width - 0.5;
-      const cy = (e.clientY - r.top) / r.height - 0.5;
-      mouseRY = cx * 24;
-      mouseRX = -cy * 16;
+    const handleDragOver = (e: DragEvent) => { e.preventDefault(); setIsDragging(true); };
+    const handleDragLeave = (e: DragEvent) => { if (e.clientX === 0 && e.clientY === 0) setIsDragging(false); };
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+      setJustDropped(true);
+      setTimeout(() => setJustDropped(false), 3000);
     };
-
-    const onMouseMove = (e: MouseEvent) => onMove(e);
-    const onTouchMove = (e: TouchEvent) => { if (e.touches[0]) onMove(e.touches[0]); };
-    // Reset mouse influence when the cursor leaves the scene
-    const onMouseLeave = () => { mouseRX = 0; mouseRY = 0; };
-
-    const tick = () => {
-      const t = (performance.now() - t0) / 1000;
-      // Slow independent sine waves on each axis for the idle orbit
-      const autoRY = Math.sin(t * 0.35) * 8;
-      const autoRX = Math.sin(t * 0.5 + 1) * 3;
-      const targetRY = autoRY + mouseRY;
-      const targetRX = autoRX + mouseRX - 6; // -6 tilts the stage slightly toward the viewer
-      // Lerp toward target — 0.06 gives a ~16-frame ease-in feel
-      curRY += (targetRY - curRY) * 0.06;
-      curRX += (targetRX - curRX) * 0.06;
-      stage.style.transform = `rotateX(${curRX}deg) rotateY(${curRY}deg)`;
-      rafId = requestAnimationFrame(tick);
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
-    scene.addEventListener('mouseleave', onMouseLeave);
-    rafId = requestAnimationFrame(tick);
-
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('touchmove', onTouchMove);
-      scene.removeEventListener('mouseleave', onMouseLeave);
-      cancelAnimationFrame(rafId);
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
     };
   }, []);
 
@@ -106,8 +83,15 @@ export default function Home() {
     return () => io.disconnect();
   }, []);
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const x = (e.clientX / window.innerWidth) * 100;
+    const y = (e.clientY / window.innerHeight) * 100;
+    document.documentElement.style.setProperty('--glare-x', `${x}%`);
+    document.documentElement.style.setProperty('--glare-y', `${y}%`);
+  };
+
   return (
-    <div className="landing">
+    <div className="landing" onMouseMove={handleMouseMove}>
       {/* Ambient blobs */}
       <div className="blob blob-a" />
       <div className="blob blob-b" />
@@ -139,21 +123,21 @@ export default function Home() {
         <div className="hero-text">
           <div className="eyebrow">
             <span className="dot" />
-            HEIF → JPG · pre-optimised for every platform
+            Any photo → optimised for every platform
           </div>
 
           <h1 className="headline">
-            iPhone photos,<br />
+            Any photo,<br />
             <span className="serif">share-ready</span> in one click.
           </h1>
 
           <p className="sub">
-            Convert HEIF to JPG and have it sized, compressed and colour-tuned exactly the way
-            Instagram, WhatsApp or Twitter actually want it. All in your browser.
+            Drop any photo — HEIC, JPG, PNG or WebP — and get it sized, compressed and colour-tuned
+            exactly the way Instagram, WhatsApp or Twitter actually want it. All in your browser.
           </p>
 
           <div className="hero-cta">
-            <Link href="/heif-to-jpg" className="btn primary lg">Convert HEIF → JPG</Link>
+            <Link href="/heif-to-jpg" className="btn primary lg">Optimise my photo</Link>
             <a href="#platforms" className="btn lg">See platform presets</a>
           </div>
 
@@ -164,76 +148,158 @@ export default function Home() {
           </div>
         </div>
 
-        {/* PHONE MOCKUP — tilts with mouse via stageRef */}
+        {/* PHONE MOCKUP */}
         <div className="scene-wrap" aria-hidden="true">
-          <div className="scene" ref={sceneRef}>
-            <div className="stage3d" ref={stageRef}>
-              <div className="phone-frame">
-                {/* Notch */}
-                <div className="phone-notch" />
-                {/* Scrolling feed of platform post cards — loops infinitely */}
-                <div className="phone-screen">
-                  <div className="feed-track">
-                    {/* Cards duplicated so the CSS loop animation is seamless */}
-                    {[0, 1].map(copy => (
-                      <div key={copy} className="feed-cards">
-                        <div className="feed-card fc-ig">
-                          <div className="fc-topbar">
-                            <div className="fc-avatar fc-av-ig" />
-                            <div className="fc-meta"><div className="fc-handle">your_shot</div><div className="fc-time">just now</div></div>
-                            <div className="fc-badge fc-bd-ig">IG</div>
-                          </div>
-                          <div className="fc-img fc-img-sq"><MtnSvg /></div>
-                          <div className="fc-footer"><span className="fc-spec">1080 × 1080 · JPG · 85%</span></div>
-                        </div>
+          <div className="phone-stage">
 
-                        <div className="feed-card fc-wa">
-                          <div className="fc-topbar">
-                            <div className="fc-avatar fc-av-wa" />
-                            <div className="fc-meta"><div className="fc-handle">WhatsApp</div><div className="fc-time">sent</div></div>
-                            <div className="fc-badge fc-bd-wa">WA</div>
-                          </div>
-                          <div className="fc-img fc-img-43"><MtnSvg /></div>
-                          <div className="fc-footer"><span className="fc-spec">1600 × 1200 · JPG · 78%</span></div>
-                        </div>
-
-                        <div className="feed-card fc-tw">
-                          <div className="fc-topbar">
-                            <div className="fc-avatar fc-av-tw" />
-                            <div className="fc-meta"><div className="fc-handle">@yourhandle</div><div className="fc-time">1m</div></div>
-                            <div className="fc-badge fc-bd-tw">𝕏</div>
-                          </div>
-                          <div className="fc-img fc-img-169"><MtnSvg /></div>
-                          <div className="fc-footer"><span className="fc-spec">1600 × 900 · JPG · 85%</span></div>
-                        </div>
-
-                        <div className="feed-card fc-st">
-                          <div className="fc-topbar">
-                            <div className="fc-avatar fc-av-st" />
-                            <div className="fc-meta"><div className="fc-handle">Story</div><div className="fc-time">now</div></div>
-                            <div className="fc-badge fc-bd-st">ST</div>
-                          </div>
-                          <div className="fc-img fc-img-916"><MtnSvg /></div>
-                          <div className="fc-footer"><span className="fc-spec">1080 × 1920 · JPG · 85%</span></div>
-                        </div>
-
-                        <div className="feed-card fc-ln">
-                          <div className="fc-topbar">
-                            <div className="fc-avatar fc-av-ln" />
-                            <div className="fc-meta"><div className="fc-handle">LinkedIn</div><div className="fc-time">now</div></div>
-                            <div className="fc-badge fc-bd-ln">in</div>
-                          </div>
-                          <div className="fc-img fc-img-169"><MtnSvg /></div>
-                          <div className="fc-footer"><span className="fc-spec">1200 × 627 · JPG · 85%</span></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+              {/* Floating glassmorphism badges */}
+              <div className={`phone-badge phone-badge-left${isDragging ? ' phone-badge-hidden' : ''}`}>
+                <div className="phone-badge-icon phone-badge-icon-green">
+                  {/* minimize icon */}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="21" y2="3"/><line x1="3" y1="21" x2="14" y2="10"/></svg>
                 </div>
-                {/* Home indicator bar at the bottom of the phone */}
-                <div className="phone-home-bar" />
+                <div className="phone-badge-text">
+                  <span className="phone-badge-label">Size Reduction</span>
+                  <span className="phone-badge-value">-{savedPercent}%</span>
+                </div>
               </div>
-            </div>
+              <div className={`phone-badge phone-badge-right${isDragging ? ' phone-badge-hidden' : ''}`}>
+                <div className="phone-badge-icon phone-badge-icon-orange">
+                  {/* zap icon */}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </div>
+                <div className="phone-badge-text">
+                  <span className="phone-badge-label">Color Profile</span>
+                  <span className="phone-badge-value">sRGB True</span>
+                </div>
+              </div>
+
+              {/* Titanium outer hardware shell */}
+              <div className={`phone-titanium${isDragging ? ' phone-titanium-drag' : ''}`}>
+
+                {/* Hardware side buttons */}
+                <div className="phone-btn phone-btn-mute" />
+                <div className="phone-btn phone-btn-vol-up" />
+                <div className="phone-btn phone-btn-vol-dn" />
+                <div className="phone-btn phone-btn-power" />
+
+                {/* Black inner bezel */}
+                <div className="phone-bezel">
+
+                  {/* Mouse-tracked glass glare */}
+                  <div className="phone-glare" />
+
+                  {/* Static top gloss */}
+                  <div className="phone-gloss" />
+
+                  {/* Dynamic Island */}
+                  <div className="phone-dynamic-island">
+                    <div className="phone-di-camera">
+                      <div className="phone-di-lens" />
+                    </div>
+                    <div className="phone-di-dot" />
+                  </div>
+
+                  {/* Drag & drop overlay */}
+                  <div className={`phone-drop-overlay${isDragging ? ' phone-drop-overlay-active' : ''}`}>
+                    <div className="phone-radar-ring phone-radar-ring-1" />
+                    <div className="phone-radar-ring phone-radar-ring-2" />
+                    <div className="phone-drop-icon">
+                      {/* upload-cloud icon */}
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                    </div>
+                    <span className="phone-drop-title">Drop to Convert</span>
+                    <span className="phone-drop-sub">Automatic platform sizing</span>
+                  </div>
+
+                  {/* Success overlay */}
+                  <div className={`phone-success-overlay${justDropped ? ' phone-success-overlay-active' : ''}`}>
+                    <div className="phone-success-icon">
+                      {/* check icon */}
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <span className="phone-success-title">Perfected!</span>
+                  </div>
+
+                  {/* Screen */}
+                  <div className={`phone-screen feed-container${isDragging ? ' phone-screen-drag' : ''}`}>
+                    <div className="phone-screen-fade-top" />
+                    <div className="phone-screen-fade-bottom" />
+
+                    <div className="feed-track">
+                      {[0, 1].map(copy => (
+                        <div key={copy} className="feed-cards">
+
+                          {/* Twitter / X */}
+                          <div className="feed-card">
+                            <div className="fc-topbar">
+                              <div className="fc-avatar-x">
+                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-2.5 h-2.5"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                              </div>
+                              <div className="fc-meta"><div className="fc-handle">@yourhandle</div><div className="fc-time">1m</div></div>
+                              <div className="fc-badge fc-bd-tw">𝕏</div>
+                            </div>
+                            <FeedImage src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&q=80&w=600" heightClass="fc-img-h-landscape" />
+                            <div className="fc-footer">
+                              <span className="fc-spec-dim">1600 × 900</span><span className="fc-dot-sep" />
+                              <span className="fc-spec-accent">JPG</span><span className="fc-dot-sep" />
+                              <span className="fc-spec-dim">85%</span>
+                            </div>
+                          </div>
+
+                          {/* Instagram Story */}
+                          <div className="feed-card">
+                            <div className="fc-topbar">
+                              <div className="fc-avatar-ig-ring">
+                                <div className="fc-avatar-ig-inner">
+                                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100" alt="Avatar" className="w-full h-full object-cover" />
+                                </div>
+                              </div>
+                              <div className="fc-meta"><div className="fc-handle">Story</div><div className="fc-time">now</div></div>
+                              <div className="fc-badge fc-bd-st">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                              </div>
+                            </div>
+                            <FeedImage src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=600" heightClass="fc-img-h-tall" />
+                            <div className="fc-footer">
+                              <span className="fc-spec-dim">1080 × 1920</span><span className="fc-dot-sep" />
+                              <span className="fc-spec-accent">JPG</span><span className="fc-dot-sep" />
+                              <span className="fc-spec-dim">85%</span>
+                            </div>
+                          </div>
+
+                          {/* LinkedIn */}
+                          <div className="feed-card">
+                            <div className="fc-topbar">
+                              <div className="fc-avatar-photo">
+                                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=100" alt="Avatar" className="w-full h-full object-cover" />
+                              </div>
+                              <div className="fc-meta"><div className="fc-handle">LinkedIn</div><div className="fc-time">now</div></div>
+                              <div className="fc-badge fc-bd-ln">
+                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452z"/></svg>
+                              </div>
+                            </div>
+                            <FeedImage src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600" heightClass="fc-img-h-medium" />
+                            <div className="fc-footer">
+                              <span className="fc-spec-dim">1200 × 627</span><span className="fc-dot-sep" />
+                              <span className="fc-spec-accent">JPG</span><span className="fc-dot-sep" />
+                              <span className="fc-spec-dim">90%</span>
+                            </div>
+                          </div>
+
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Home indicator inside screen */}
+                    <div className="phone-home-bar-inner">
+                      <div className="phone-home-bar" />
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
           </div>
         </div>
       </header>
@@ -334,7 +400,7 @@ export default function Home() {
         <div className="sec-eyebrow">FAQ</div>
         <h2 className="sec-title">HEIF to JPG, <span className="serif">answered.</span></h2>
 
-        <div className="faq" style={{ marginTop: '50px' }}>
+        <div className="faq faq-section">
           <details className="qa" open>
             <summary>Why convert HEIF to JPG?</summary>
             <p>HEIF is what iPhones save by default — it&rsquo;s efficient but lots of apps, websites and Windows machines can&rsquo;t open it. JPG is the universal format that works everywhere.</p>
@@ -355,6 +421,14 @@ export default function Home() {
             <summary>Can I convert many at once?</summary>
             <p>Yes. Drop a whole folder of HEIFs and you&rsquo;ll get a folder of platform-optimised JPGs back.</p>
           </details>
+          <details className="qa">
+            <summary>Does it work with JPG and PNG too?</summary>
+            <p>Yes. imgora accepts any image format — HEIC, JPG, PNG, WebP, GIF and more. Whatever you drop in, you get a perfectly optimised JPG out.</p>
+          </details>
+          <details className="qa">
+            <summary>Will my photo lose quality?</summary>
+            <p>Only the minimum needed to hit the target size. imgora uses the exact quality setting each platform prefers — so your photo looks as good on Instagram as it did on your camera.</p>
+          </details>
         </div>
       </section>
 
@@ -365,7 +439,7 @@ export default function Home() {
           <span className="serif">Convert one in 3 seconds.</span>
         </h3>
         <p>Open the converter, drop a HEIF, pick where you&rsquo;re sharing it. That&rsquo;s the whole onboarding.</p>
-        <Link href="/heif-to-jpg" className="btn primary lg">Convert HEIF → JPG →</Link>
+        <Link href="/heif-to-jpg" className="btn primary lg">Convert HEIF → JPG</Link>
       </div>
 
       {/* FOOTER */}
@@ -392,7 +466,7 @@ export default function Home() {
         </div>
         <div className="foot-bottom">
           <span>© 2025 imgora.in · Made for the open web.</span>
-          <span style={{ fontFamily: 'var(--mono)' }}>v0.3.0 · made in IN</span>
+          <span className="foot-version">v0.3.0 · made in IN</span>
         </div>
       </footer>
     </div>

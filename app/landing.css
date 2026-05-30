@@ -88,7 +88,7 @@ nav.top ul a:hover { color: var(--fg); }
   .hero { grid-template-columns: 1fr; padding: 110px 24px 40px; min-height: auto; gap: 24px; }
 }
 @media (max-width: 520px) {
-  .hero { padding: 100px 20px 32px; gap: 16px; }
+  .hero { padding: 100px 20px 0; gap: 0; }
 }
 
 .hero-text { position: relative; z-index: 2; }
@@ -155,7 +155,7 @@ h1.headline .serif {
     height: auto;
     position: relative;
     overflow: visible;
-    padding: 20px 0 40px;
+    padding: 0 0 16px;
   }
   .scene {
     position: relative;

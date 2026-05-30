@@ -151,13 +151,24 @@ h1.headline .serif {
 
 /* ---- Mobile phone scaling ---- */
 @media (max-width: 980px) {
-  .scene-wrap { height: clamp(520px, 70vw, 620px); overflow: hidden; }
-  .phone-stage { transform: scale(0.78); transform-origin: center top; }
+  .scene-wrap {
+    height: auto;
+    position: relative;
+    overflow: visible;
+    padding: 20px 0 40px;
+  }
+  .scene {
+    position: relative;
+    inset: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .phone-stage { transform: scale(0.78); transform-origin: center center; }
   .phone-badge { display: none; }
 }
 @media (max-width: 520px) {
-  .scene-wrap { height: 480px; }
-  .phone-stage { transform: scale(0.62); transform-origin: center top; }
+  .phone-stage { transform: scale(0.6); transform-origin: center center; }
 }
 
 /* ============ PHONE — TITANIUM DESIGN ============ */

@@ -219,8 +219,8 @@ export default function HeifToJpgPage() {
         </div>
 
         <h1 className="headline">
-          HEIF to JPG —<br />
-          <span className="serif">best quality, one click.</span>
+          HEIF to JPG <br />
+          <span className="serif">Best quality, One click.</span>
         </h1>
 
         <p className="sub">

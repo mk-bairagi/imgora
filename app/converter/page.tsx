@@ -83,16 +83,21 @@ function ConverterContent() {
   // Use the preset's fixed quality except for the "custom" platform where the user sets it via slider
   const quality = activePf === 'custom' ? customQ : preset.q;
 
-  // Filter incoming files to HEIC/HEIF only, then append them to the queue
-  const addFiles = useCallback((rawFiles: File[]) => {
-    const valid = rawFiles.filter(f =>
-      f.name.toLowerCase().endsWith('.heic') ||
-      f.name.toLowerCase().endsWith('.heif') ||
-      f.type === 'image/heic' ||
-      f.type === 'image/heif'
-    );
+  const addFiles = useCallback(async (rawFiles: File[]) => {
+    const isImage = (f: File) => {
+      const name = f.name.toLowerCase();
+      return (
+        f.type.startsWith('image/') ||
+        name.endsWith('.heic') || name.endsWith('.heif') ||
+        name.endsWith('.jpg') || name.endsWith('.jpeg') ||
+        name.endsWith('.png') || name.endsWith('.webp') ||
+        name.endsWith('.gif') || name.endsWith('.tiff') ||
+        name.endsWith('.bmp')
+      );
+    };
+    const valid = rawFiles.filter(f => isImage(f));
     if (valid.length === 0) {
-      alert('Please drop .heic or .heif files.');
+      alert('Please drop image files (HEIC, JPG, PNG, WebP etc.)');
       return;
     }
     setFiles(prev => [
@@ -162,7 +167,7 @@ function ConverterContent() {
       )
     );
     setIsConverting(false);
-  }, [files, quality, activePf]);
+  }, [files, quality, activePf, preset]);
 
   // Fetch all converted blobs by their object URLs and bundle them into a single ZIP download
   const downloadZip = useCallback(async () => {
@@ -212,7 +217,7 @@ function ConverterContent() {
         </div>
 
         <h1 className="page">
-          Drop a HEIF. <span className="serif">Pick where it&rsquo;s going.</span>
+          Drop a photo. <span className="serif">Pick where it&rsquo;s going.</span>
         </h1>
         <p className="lede">
           imgora pre-tunes the JPG — dimensions, quality, colour profile — for the exact platform
@@ -263,11 +268,11 @@ function ConverterContent() {
                   <path d="M11 3v12M5 9l6-6 6 6M3 19h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <h2>{hasFiles ? 'Add more files' : 'Drop your HEIF photos'}</h2>
+              <h2>{hasFiles ? 'Add more files' : 'Drop your photos'}</h2>
               <p>
                 {hasFiles
                   ? `${files.length} in queue · drop or click to add`
-                  : 'or click to choose · .heif / .heic from your iPhone'}
+                  : 'HEIC, JPG, PNG, WebP — optimised for your platform'}
               </p>
               <input
                 ref={fileInputRef}
@@ -286,7 +291,7 @@ function ConverterContent() {
                 Choose files
               </button>
               {!hasFiles && (
-                <div className="or">Your files stay on your device. No upload happens.</div>
+                <div className="or">Your files stay on your device. No upload, ever.</div>
               )}
             </div>
 

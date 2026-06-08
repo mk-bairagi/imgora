@@ -32,11 +32,11 @@ const jetbrainsMono = JetBrains_Mono({
 // Site-wide default metadata — individual pages override title/description as needed
 export const metadata: Metadata = {
   metadataBase: new URL("https://imgora.in"),
-  title: "imgora — HEIF to JPG converter · optimised for Instagram, WhatsApp & more",
+  title: "imgora — Social Media Image Resizer & Converter · Free & Private",
   description:
-    "Convert iPhone HEIF photos to JPG with one click — pre-optimised for Instagram, WhatsApp, Twitter, Facebook and email. 100% browser-based. Free. Private.",
+    "Resize, compress and optimise any photo for Instagram, WhatsApp, Twitter, Facebook and more. Drop any image — HEIC, JPG, PNG, WebP — and get a perfectly sized JPG instantly. 100% browser-based. Free. Private.",
   keywords:
-    "heif to jpg, heic to jpg, iphone photo to jpg, jpg for instagram, jpg for whatsapp, free heif converter, browser heif to jpg",
+    "resize photo for instagram, image resizer online, compress image for whatsapp, social media image optimizer, photo resizer, heic to jpg, resize image online free",
   openGraph: {
     title: "imgora — HEIF to JPG, ready for social",
     description:

@@ -34,6 +34,7 @@ interface FileEntry {
   status: 'queued' | 'converting' | 'done' | 'error';
   url?: string;           // blob URL for the converted JPEG, set when status = 'done'
   convertedSize?: number; // output file size in bytes
+  actualQuality?: number; // JPEG quality actually used after binary search
   error?: string;         // error message when status = 'error'
 }
 
@@ -130,10 +131,10 @@ function ConverterContent() {
 
           // Spawn a dedicated worker per file — they run truly in parallel
           const worker = new Worker('/heic-worker.js');
-          worker.postMessage({ file: entry.file, index: 0, quality, targetW, targetH, stripExif });
+          worker.postMessage({ file: entry.file, index: 0, quality, targetW, targetH, stripExif, platform: activePf });
 
           worker.onmessage = (e) => {
-            const { buffer, error } = e.data;
+            const { buffer, error, actualQuality } = e.data;
             if (error) {
               setFiles(prev =>
                 prev.map(f => f.id === entry.id ? { ...f, status: 'error', error } : f)
@@ -147,7 +148,7 @@ function ConverterContent() {
               const suffix = activePf !== 'custom' ? '_' + activePf : '';
               setFiles(prev =>
                 prev.map(f => f.id === entry.id
-                  ? { ...f, status: 'done', url, name: base + suffix + '.jpg', convertedSize: blob.size }
+                  ? { ...f, status: 'done', url, name: base + suffix + '.jpg', convertedSize: blob.size, actualQuality }
                   : f
                 )
               );
@@ -308,7 +309,7 @@ function ConverterContent() {
                       <div className="file-meta">
                         {fmtSize(f.size)}
                         {f.status === 'done' && f.convertedSize != null && (
-                          <> → {fmtSize(f.convertedSize)}</>
+                          <> → {fmtSize(f.convertedSize)}{f.actualQuality != null ? ` · q${f.actualQuality}` : ''}{activePf !== 'custom' ? ` · ${preset.name} ready ✓` : ''}</>
                         )}
                         {f.status === 'error' && f.error && (
                           <> · {f.error}</>

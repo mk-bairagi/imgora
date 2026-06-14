@@ -88,10 +88,7 @@ nav.top ul a:hover { color: var(--fg); }
   .hero { grid-template-columns: 1fr; padding: 110px 24px 40px; min-height: auto; gap: 24px; }
 }
 @media (max-width: 520px) {
-  .hero { padding: 90px 20px 0; gap: 0; }
-  h1.headline { font-size: 38px; margin-bottom: 16px; }
-  .sub { font-size: 15px; margin-bottom: 24px; }
-  .trust-row { margin-top: 24px; gap: 16px; }
+  .hero { padding: 100px 20px 0; gap: 0; }
 }
 
 .hero-text { position: relative; z-index: 2; }
@@ -171,8 +168,7 @@ h1.headline .serif {
   .phone-badge { display: none; }
 }
 @media (max-width: 520px) {
-  .scene-wrap { overflow: hidden; max-height: 320px; }
-  .phone-stage { transform: scale(0.6); transform-origin: top center; }
+  .phone-stage { transform: scale(0.6); transform-origin: center center; }
 }
 
 /* ============ PHONE — TITANIUM DESIGN ============ */

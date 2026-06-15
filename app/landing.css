@@ -132,8 +132,8 @@ h1.headline .serif {
 
 /* ============ HERO SCROLL HINT ============ */
 .hero-scroll-hint {
-  position: absolute;
-  bottom: 28px;
+  position: fixed;
+  bottom: 48px;
   left: 50%;
   transform: translateX(-50%);
   width: 44px; height: 44px;
@@ -144,11 +144,12 @@ h1.headline .serif {
   display: flex; align-items: center; justify-content: center;
   text-decoration: none;
   animation: bounce-hint 2s ease-in-out infinite;
-  transition: opacity 400ms ease;
-  z-index: 10;
+  transition: opacity 400ms ease, visibility 400ms ease;
+  z-index: 40;
 }
 .hero-scroll-hint-hidden {
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 @keyframes bounce-hint {

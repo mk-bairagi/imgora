@@ -71,6 +71,7 @@ function ConverterContent() {
     pfParam && PRESETS.find(p => p.pf === pfParam) ? pfParam : 'instagram';
 
   const [activePf, setActivePf] = useState<PlatformKey>(initialPf);
+  const sidebarRef = useRef<HTMLElement>(null);
   const [customQ, setCustomQ] = useState(90);          // quality only used when activePf === 'custom'
   const [stripExif, setStripExif] = useState(true);    // default: strip location & metadata for privacy
   const [bundleZip, setBundleZip] = useState(false);   // when true, show "Download ZIP" button after conversion
@@ -210,12 +211,6 @@ function ConverterContent() {
       </nav>
 
       <main>
-        <div className="crumb">
-          <Link href="/">imgora</Link>
-          <span className="sep"> · </span>
-          <span style={{ color: 'var(--fg)' }}>Convert HEIF → JPG</span>
-        </div>
-
         <h1 className="page">
           Drop a photo. <span className="serif">Pick where it&rsquo;s going.</span>
         </h1>
@@ -237,7 +232,10 @@ function ConverterContent() {
                 type="button"
                 className={`pf${activePf === p.pf ? ' active' : ''}`}
                 data-pf={p.pf}
-                onClick={() => setActivePf(p.pf)}
+                onClick={() => {
+                  setActivePf(p.pf);
+                  setTimeout(() => sidebarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                }}
               >
                 <div className="pf-icon-sm">{p.label}</div>
                 <div className="pf-name">{p.name.split(' · ')[0]}</div>
@@ -337,7 +335,7 @@ function ConverterContent() {
           </div>
 
           {/* SIDEBAR */}
-          <aside className="side">
+          <aside ref={sidebarRef} className="side">
             <div className="group">
               <h3>Output preset</h3>
               <div

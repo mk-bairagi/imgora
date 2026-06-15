@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import './landing.css';
 
@@ -38,7 +38,14 @@ function CheckIcon() {
 export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [justDropped, setJustDropped] = useState(false);
+  const [showScrollHint, setShowScrollHint] = useState(true);
   const savedPercent = useCounter(85, 2500);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollHint(window.scrollY < 80);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Drag & drop listeners for phone overlay effect
   useEffect(() => {
@@ -302,6 +309,17 @@ export default function Home() {
 
           </div>
         </div>
+
+        {/* Scroll hint chevron */}
+        <a
+          href="#platforms"
+          className={`hero-scroll-hint${showScrollHint ? '' : ' hero-scroll-hint-hidden'}`}
+          aria-label="Scroll down"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </a>
       </header>
 
       {/* PLATFORM GRID */}

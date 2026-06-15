@@ -130,6 +130,32 @@ h1.headline .serif {
 .trust-row > div { display: flex; align-items: center; gap: 8px; }
 .trust-row svg { width: 14px; height: 14px; color: var(--good); }
 
+/* ============ HERO SCROLL HINT ============ */
+.hero-scroll-hint {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(234, 88, 12, 0.35);
+  background: rgba(234, 88, 12, 0.08);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none;
+  animation: bounce-hint 2s ease-in-out infinite;
+  transition: opacity 400ms ease;
+  z-index: 10;
+}
+.hero-scroll-hint-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes bounce-hint {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%       { transform: translateX(-50%) translateY(7px); }
+}
+
 /* ============ 3D PHONE SCENE ============ */
 .scene-wrap {
   position: relative;

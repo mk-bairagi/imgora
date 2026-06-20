@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import './landing.css';
 
@@ -135,16 +135,16 @@ export default function Home() {
 
           <h1 className="headline">
             Any photo,<br />
-            <span className="serif">share-ready</span> in one click.
+            <span className="serif">platform-perfect</span> in seconds.
           </h1>
 
           <p className="sub">
-            Drop any photo — HEIC, JPG, PNG or WebP — and get it sized, compressed and colour-tuned
-            exactly the way Instagram, WhatsApp or Twitter actually want it. All in your browser.
+            Drop any photo — HEIC, JPG, PNG or WebP — and get it sized, compressed and
+            colour-tuned exactly the way Instagram, WhatsApp or Twitter want it. All in your browser, totally private.
           </p>
 
           <div className="hero-cta">
-            <Link href="/heif-to-jpg" className="btn primary lg">Optimise my photo</Link>
+            <Link href="/converter" className="btn primary lg">Optimise my photo</Link>
             <a href="#platforms" className="btn lg">See platform presets</a>
           </div>
 
@@ -393,60 +393,63 @@ export default function Home() {
           <div className="step">
             <div>
               <div className="step-num">01</div>
-              <h4>Drop your HEIF</h4>
-              <p>Drag any .heif or .heic photo straight from your iPhone, AirDrop folder or downloads.</p>
+              <h4>Drop any photo</h4>
+              <p>HEIC, JPG, PNG or WebP — drag it straight from your camera roll, downloads or anywhere else.</p>
             </div>
           </div>
           <div className="step">
             <div>
               <div className="step-num">02</div>
-              <h4>Pick a platform</h4>
-              <p>Tap the place you&rsquo;re going to share it. We handle the size, quality and colour profile.</p>
+              <h4>Pick where you&rsquo;re sharing</h4>
+              <p>Choose Instagram, WhatsApp, Twitter or any other platform. We handle the size, quality and colour profile automatically.</p>
             </div>
           </div>
           <div className="step">
             <div>
               <div className="step-num">03</div>
               <h4>Download &amp; post</h4>
-              <p>A ready-to-share JPG lands on your device the moment it&rsquo;s done.</p>
+              <p>A perfectly optimised JPG is ready instantly — no upload, no account, no waiting.</p>
             </div>
           </div>
+        </div>
+        <div className="how-cta">
+          <Link href="/converter" className="btn primary lg">Try it now — it&rsquo;s free</Link>
         </div>
       </section>
 
       {/* FAQ */}
       <section id="faq" className="reveal">
         <div className="sec-eyebrow">FAQ</div>
-        <h2 className="sec-title">HEIF to JPG, <span className="serif">answered.</span></h2>
+        <h2 className="sec-title">Good questions, <span className="serif">straight answers.</span></h2>
 
         <div className="faq faq-section">
           <details className="qa" open>
-            <summary>Why convert HEIF to JPG?</summary>
-            <p>HEIF is what iPhones save by default — it&rsquo;s efficient but lots of apps, websites and Windows machines can&rsquo;t open it. JPG is the universal format that works everywhere.</p>
+            <summary>What does imgora actually do?</summary>
+            <p>imgora takes any photo you have — HEIC, JPG, PNG or WebP — and outputs a JPG that is perfectly sized, compressed and colour-tuned for the platform you&rsquo;re sharing to. One click, no guessing, no quality loss from double-compression.</p>
           </details>
           <details className="qa">
-            <summary>Why does each platform need a different JPG?</summary>
-            <p>Every social platform re-encodes whatever you upload. If you give Instagram a 4032×3024 photo, it downscales to 1080×1080 with its own lossy compression — and your photo loses quality twice. By giving the platform exactly what it wants, you keep the only round of compression.</p>
+            <summary>Why does each platform need a different version of my photo?</summary>
+            <p>Every social platform re-encodes whatever you upload with its own lossy compression. If you give Instagram a 4032×3024 photo, it downscales and re-compresses it — and your photo loses quality twice. imgora pre-tunes the JPG to exactly what each platform wants, so there&rsquo;s only one round of compression and your photo looks its best.</p>
           </details>
           <details className="qa">
-            <summary>Are my photos actually private?</summary>
-            <p>Yes. imgora decodes and re-encodes everything in your browser using built-in image APIs. Nothing is uploaded. You can disconnect from the internet after the page loads and conversion will still work.</p>
+            <summary>What photo formats does it accept?</summary>
+            <p>Any image format — HEIC, JPG, PNG, WebP, GIF, TIFF and more. iPhone photos, Android shots, screenshots, anything. Whatever you drop in, you get a perfectly optimised JPG out.</p>
           </details>
           <details className="qa">
-            <summary>What about location data and EXIF?</summary>
-            <p>By default we strip metadata when targeting a social platform — your home location doesn&rsquo;t accidentally get baked into the file. You can disable this in the converter&rsquo;s settings if you want to keep capture date and camera info.</p>
+            <summary>Are my photos private?</summary>
+            <p>Completely. imgora processes everything in your browser — nothing is uploaded to any server. You can disconnect from the internet after the page loads and it will still work.</p>
           </details>
           <details className="qa">
-            <summary>Can I convert many at once?</summary>
-            <p>Yes. Drop a whole folder of HEIFs and you&rsquo;ll get a folder of platform-optimised JPGs back.</p>
+            <summary>What happens to location data and EXIF?</summary>
+            <p>By default we strip all metadata — so your home location doesn&rsquo;t accidentally get baked into the file you post. You can turn this off in the converter settings if you want to keep capture date and camera info.</p>
           </details>
           <details className="qa">
-            <summary>Does it work with JPG and PNG too?</summary>
-            <p>Yes. imgora accepts any image format — HEIC, JPG, PNG, WebP, GIF and more. Whatever you drop in, you get a perfectly optimised JPG out.</p>
+            <summary>Can I optimise multiple photos at once?</summary>
+            <p>Yes. Drop a whole folder and you&rsquo;ll get a folder of platform-optimised JPGs back, or download them as a single ZIP.</p>
           </details>
           <details className="qa">
             <summary>Will my photo lose quality?</summary>
-            <p>Only the minimum needed to hit the target size. imgora uses the exact quality setting each platform prefers — so your photo looks as good on Instagram as it did on your camera.</p>
+            <p>Only the minimum needed. imgora uses the exact quality setting each platform prefers — so your photo looks as good after posting as it did before.</p>
           </details>
         </div>
       </section>
@@ -454,11 +457,11 @@ export default function Home() {
       {/* CTA */}
       <div className="cta-block reveal">
         <h3>
-          Stop AirDropping back to yourself.<br />
-          <span className="serif">Convert one in 3 seconds.</span>
+          Your photo, optimised for<br />
+          <span className="serif">every platform in seconds.</span>
         </h3>
-        <p>Open the converter, drop a HEIF, pick where you&rsquo;re sharing it. That&rsquo;s the whole onboarding.</p>
-        <Link href="/heif-to-jpg" className="btn primary lg">Convert HEIF → JPG</Link>
+        <p>Drop any photo, pick where you&rsquo;re sharing it, download and post. That&rsquo;s it.</p>
+        <Link href="/converter" className="btn primary lg">Optimise my photo — it&rsquo;s free</Link>
       </div>
 
       {/* FOOTER */}
@@ -484,8 +487,8 @@ export default function Home() {
           </div>
         </div>
         <div className="foot-bottom">
-          <span>© 2025 imgora.in · Made for the open web.</span>
-          <span className="foot-version">v0.3.0 · made in IN</span>
+          <span>© 2026 imgora.in · Made for the open web.</span>
+          <span className="foot-version">v0.3.0</span>
         </div>
       </footer>
     </div>

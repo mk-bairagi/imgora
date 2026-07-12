@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { getDroppedFiles } from '../lib/getDroppedFiles';
 import '../landing.css';
 import './heif-to-jpg.css';
 
@@ -81,7 +82,16 @@ export default function HeifToJpgPage() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [quality, setQuality] = useState<QualityValue>(95);
+  const [dropError, setDropError] = useState<string | null>(null);
+  const dropErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Show a validation message under the dropzone, auto-dismissing after a few seconds
+  const showDropError = useCallback((msg: string) => {
+    setDropError(msg);
+    if (dropErrorTimer.current) clearTimeout(dropErrorTimer.current);
+    dropErrorTimer.current = setTimeout(() => setDropError(null), 5000);
+  }, []);
 
   // Takes entries already added to state and runs each through the worker.
   // quality is passed as a param so it captures the value at call time, not from stale closure.
@@ -97,7 +107,7 @@ export default function HeifToJpgPage() {
           );
           const worker = new Worker('/heic-worker.js');
           // targetW/targetH null = keep original dimensions
-          worker.postMessage({ file: entry.file, index: 0, quality: q, targetW: null, targetH: null, stripExif: true });
+          worker.postMessage({ file: entry.file, index: 0, quality: q, targetW: null, targetH: null });
           worker.onmessage = (e) => {
             const { buffer, error } = e.data;
             if (error) {
@@ -139,9 +149,10 @@ export default function HeifToJpgPage() {
       f.type === 'image/heif'
     );
     if (valid.length === 0) {
-      alert('Please drop .heic or .heif files.');
+      showDropError('Please drop .heic or .heif files — for JPG, PNG or WebP use the platform converter.');
       return;
     }
+    setDropError(null);
     const newEntries: FileEntry[] = valid.map(f => ({
       id: crypto.randomUUID(),
       file: f,
@@ -261,7 +272,12 @@ export default function HeifToJpgPage() {
           onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
           onDragEnter={e => { e.preventDefault(); setIsDragOver(true); }}
           onDragLeave={() => setIsDragOver(false)}
-          onDrop={e => { e.preventDefault(); setIsDragOver(false); addFiles(Array.from(e.dataTransfer.files), quality); }}
+          onDrop={e => {
+            e.preventDefault();
+            setIsDragOver(false);
+            // getDroppedFiles walks into dropped folders too, not just loose files
+            getDroppedFiles(e.dataTransfer).then(fs => addFiles(fs, quality));
+          }}
           onClick={() => fileInputRef.current?.click()}
         >
           <div className="htj-drop-icon">
@@ -289,6 +305,10 @@ export default function HeifToJpgPage() {
           </button>
           {!hasFiles && <p className="htj-privacy">Your photos never leave this device.</p>}
         </div>
+
+        {dropError && (
+          <div className="drop-error" role="alert">{dropError}</div>
+        )}
 
         {/* FILE LIST */}
         {hasFiles && (
@@ -499,7 +519,7 @@ export default function HeifToJpgPage() {
           </div>
         </div>
         <div className="foot-bottom">
-          <span>© 2025 imgora.in · Made for the open web.</span>
+          <span>© 2026 imgora.in · Made for the open web.</span>
           <span style={{ fontFamily: 'var(--mono)' }}>v0.3.0 · made in IN</span>
         </div>
       </footer>

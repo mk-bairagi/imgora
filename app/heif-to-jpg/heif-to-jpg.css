@@ -262,3 +262,10 @@
   color: var(--fg-muted);
   flex-shrink: 0;
 }
+
+/* Inline validation message shown under the dropzone */
+.drop-error {
+  margin: 14px auto 0; padding: 10px 14px; border-radius: 10px;
+  font-size: 13px; line-height: 1.5; color: #dc2626; text-align: center;
+  background: rgba(220, 38, 38, 0.06); border: 1px solid rgba(220, 38, 38, 0.25);
+}

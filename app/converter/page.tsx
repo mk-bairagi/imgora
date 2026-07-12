@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import JSZip from 'jszip';
+import { getDroppedFiles } from '../lib/getDroppedFiles';
 import './converter.css';
 
 // Each preset defines the recommended dimensions and JPEG quality for a specific platform.
@@ -73,12 +74,20 @@ function ConverterContent() {
   const [activePf, setActivePf] = useState<PlatformKey>(initialPf);
   const sidebarRef = useRef<HTMLElement>(null);
   const [customQ, setCustomQ] = useState(90);          // quality only used when activePf === 'custom'
-  const [stripExif, setStripExif] = useState(true);    // default: strip location & metadata for privacy
   const [bundleZip, setBundleZip] = useState(false);   // when true, show "Download ZIP" button after conversion
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [isDragOver, setIsDragOver] = useState(false); // highlights the dropzone during drag
   const [isConverting, setIsConverting] = useState(false);
+  const [dropError, setDropError] = useState<string | null>(null);
+  const dropErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Show a validation message under the dropzone, auto-dismissing after a few seconds
+  const showDropError = useCallback((msg: string) => {
+    setDropError(msg);
+    if (dropErrorTimer.current) clearTimeout(dropErrorTimer.current);
+    dropErrorTimer.current = setTimeout(() => setDropError(null), 5000);
+  }, []);
 
   const preset = PRESETS.find(p => p.pf === activePf) ?? PRESETS[0];
   // Use the preset's fixed quality except for the "custom" platform where the user sets it via slider
@@ -92,15 +101,15 @@ function ConverterContent() {
         name.endsWith('.heic') || name.endsWith('.heif') ||
         name.endsWith('.jpg') || name.endsWith('.jpeg') ||
         name.endsWith('.png') || name.endsWith('.webp') ||
-        name.endsWith('.gif') || name.endsWith('.tiff') ||
-        name.endsWith('.bmp')
+        name.endsWith('.gif') || name.endsWith('.bmp')
       );
     };
     const valid = rawFiles.filter(f => isImage(f));
     if (valid.length === 0) {
-      alert('Please drop image files (HEIC, JPG, PNG, WebP etc.)');
+      showDropError('That file type isn’t supported — drop images like HEIC, JPG, PNG or WebP.');
       return;
     }
+    setDropError(null);
     setFiles(prev => [
       ...prev,
       ...valid.map(f => ({
@@ -112,7 +121,7 @@ function ConverterContent() {
         status: 'queued' as const,
       })),
     ]);
-  }, []);
+  }, [showDropError]);
 
   // Convert every queued file in parallel, each in its own Web Worker
   const convertAll = useCallback(async () => {
@@ -131,7 +140,7 @@ function ConverterContent() {
 
           // Spawn a dedicated worker per file — they run truly in parallel
           const worker = new Worker('/heic-worker.js');
-          worker.postMessage({ file: entry.file, index: 0, quality, targetW, targetH, stripExif });
+          worker.postMessage({ file: entry.file, index: 0, quality, targetW, targetH });
 
           worker.onmessage = (e) => {
             const { buffer, error } = e.data;
@@ -257,7 +266,8 @@ function ConverterContent() {
               onDrop={e => {
                 e.preventDefault();
                 setIsDragOver(false);
-                addFiles(Array.from(e.dataTransfer.files));
+                // getDroppedFiles walks into dropped folders too, not just loose files
+                getDroppedFiles(e.dataTransfer).then(addFiles);
               }}
               onClick={() => fileInputRef.current?.click()}
             >
@@ -292,6 +302,10 @@ function ConverterContent() {
                 <div className="or">Your files stay on your device. No upload, ever.</div>
               )}
             </div>
+
+            {dropError && (
+              <div className="drop-error" role="alert">{dropError}</div>
+            )}
 
             {/* FILE LIST */}
             {hasFiles && (
@@ -380,13 +394,12 @@ function ConverterContent() {
 
             <div className="group">
               <h3>Options</h3>
-              <div className={`toggle${stripExif ? ' on' : ''}`} onClick={() => setStripExif(v => !v)}>
-                <span>Strip EXIF &amp; location</span>
-                <span className="tg" />
-              </div>
               <div className={`toggle${bundleZip ? ' on' : ''}`} onClick={() => setBundleZip(v => !v)}>
                 <span>Bundle as .zip</span>
                 <span className="tg" />
+              </div>
+              <div className="exif-note">
+                EXIF &amp; GPS location data are always removed — nothing personal is baked into your output file.
               </div>
             </div>
 

@@ -246,7 +246,7 @@ export default function Home() {
                               <div className="fc-meta"><div className="fc-handle">@yourhandle</div><div className="fc-time">1m</div></div>
                               <div className="fc-badge fc-bd-tw">𝕏</div>
                             </div>
-                            <FeedImage src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&q=80&w=600" heightClass="fc-img-h-landscape" />
+                            <FeedImage src="/feed/feed-twitter.jpg" heightClass="fc-img-h-landscape" />
                             <div className="fc-footer">
                               <span className="fc-spec-dim">1600 × 900</span><span className="fc-dot-sep" />
                               <span className="fc-spec-accent">JPG</span><span className="fc-dot-sep" />
@@ -259,7 +259,7 @@ export default function Home() {
                             <div className="fc-topbar">
                               <div className="fc-avatar-ig-ring">
                                 <div className="fc-avatar-ig-inner">
-                                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100" alt="Avatar" className="w-full h-full object-cover" />
+                                  <img src="/feed/avatar-story.jpg" alt="Avatar" className="w-full h-full object-cover" />
                                 </div>
                               </div>
                               <div className="fc-meta"><div className="fc-handle">Story</div><div className="fc-time">now</div></div>
@@ -267,7 +267,7 @@ export default function Home() {
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
                               </div>
                             </div>
-                            <FeedImage src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=600" heightClass="fc-img-h-tall" />
+                            <FeedImage src="/feed/feed-story.jpg" heightClass="fc-img-h-tall" />
                             <div className="fc-footer">
                               <span className="fc-spec-dim">1080 × 1920</span><span className="fc-dot-sep" />
                               <span className="fc-spec-accent">JPG</span><span className="fc-dot-sep" />
@@ -279,14 +279,14 @@ export default function Home() {
                           <div className="feed-card">
                             <div className="fc-topbar">
                               <div className="fc-avatar-photo">
-                                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=100" alt="Avatar" className="w-full h-full object-cover" />
+                                <img src="/feed/avatar-linkedin.jpg" alt="Avatar" className="w-full h-full object-cover" />
                               </div>
                               <div className="fc-meta"><div className="fc-handle">LinkedIn</div><div className="fc-time">now</div></div>
                               <div className="fc-badge fc-bd-ln">
                                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452z"/></svg>
                               </div>
                             </div>
-                            <FeedImage src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=600" heightClass="fc-img-h-medium" />
+                            <FeedImage src="/feed/feed-linkedin.jpg" heightClass="fc-img-h-medium" />
                             <div className="fc-footer">
                               <span className="fc-spec-dim">1200 × 627</span><span className="fc-dot-sep" />
                               <span className="fc-spec-accent">JPG</span><span className="fc-dot-sep" />
@@ -433,7 +433,7 @@ export default function Home() {
           </details>
           <details className="qa">
             <summary>What photo formats does it accept?</summary>
-            <p>Any image format — HEIC, JPG, PNG, WebP, GIF, TIFF and more. iPhone photos, Android shots, screenshots, anything. Whatever you drop in, you get a perfectly optimised JPG out.</p>
+            <p>Any common image format — HEIC, JPG, PNG, WebP, GIF and BMP. iPhone photos, Android shots, screenshots, anything. Whatever you drop in, you get a perfectly optimised JPG out.</p>
           </details>
           <details className="qa">
             <summary>Are my photos private?</summary>
@@ -441,7 +441,7 @@ export default function Home() {
           </details>
           <details className="qa">
             <summary>What happens to location data and EXIF?</summary>
-            <p>By default we strip all metadata — so your home location doesn&rsquo;t accidentally get baked into the file you post. You can turn this off in the converter settings if you want to keep capture date and camera info.</p>
+            <p>We remove all metadata automatically from every converted file — capture date, camera info and GPS location are stripped, so your home location never gets baked into the photo you post.</p>
           </details>
           <details className="qa">
             <summary>Can I optimise multiple photos at once?</summary>

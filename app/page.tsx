@@ -130,7 +130,7 @@ export default function Home() {
         <div className="hero-text">
           <div className="eyebrow">
             <span className="dot" />
-            Any photo → optimised for every platform
+            Any phone, any photo → perfect on every platform
           </div>
 
           <h1 className="headline">
@@ -139,8 +139,9 @@ export default function Home() {
           </h1>
 
           <p className="sub">
-            Drop any photo — HEIC, JPG, PNG or WebP — and get it sized, compressed and
-            colour-tuned exactly the way Instagram, WhatsApp or Twitter want it. All in your browser, totally private.
+            Drop any photo — from an iPhone, a Vivo, any phone at all — and imgora crops, sharpens
+            and colour-tunes it exactly the way Instagram, WhatsApp or Twitter want it, so it still looks
+            stunning <em>after</em> they compress it. All in your browser, totally private.
           </p>
 
           <div className="hero-cta">
@@ -407,8 +408,8 @@ export default function Home() {
           <div className="step">
             <div>
               <div className="step-num">03</div>
-              <h4>Download &amp; post</h4>
-              <p>A perfectly optimised JPG is ready instantly — no upload, no account, no waiting.</p>
+              <h4>Preview, fine-tune &amp; download</h4>
+              <p>See a before/after comparison, adjust sharpness, brightness or the crop if you like — then download and post. No upload, no account, no waiting.</p>
             </div>
           </div>
         </div>
@@ -425,7 +426,7 @@ export default function Home() {
         <div className="faq faq-section">
           <details className="qa" open>
             <summary>What does imgora actually do?</summary>
-            <p>imgora takes any photo you have — HEIC, JPG, PNG or WebP — and outputs a JPG that is perfectly sized, compressed and colour-tuned for the platform you&rsquo;re sharing to. One click, no guessing, no quality loss from double-compression.</p>
+            <p>imgora takes any photo from any phone — HEIC, JPG, PNG or WebP — and outputs a JPG that is exactly sized, cropped, sharpened and colour-tuned for the platform you&rsquo;re sharing to. You get a before/after preview to fine-tune sharpness, brightness and the crop before you download. No guessing, no quality loss from double-compression.</p>
           </details>
           <details className="qa">
             <summary>Why does each platform need a different version of my photo?</summary>
@@ -449,7 +450,7 @@ export default function Home() {
           </details>
           <details className="qa">
             <summary>Will my photo lose quality?</summary>
-            <p>Only the minimum needed. imgora uses the exact quality setting each platform prefers — so your photo looks as good after posting as it did before.</p>
+            <p>Only the minimum needed. imgora uses the exact quality setting each platform prefers, and lightly re-sharpens after resizing so your photo looks as crisp after posting as it did before.</p>
           </details>
         </div>
       </section>
@@ -477,7 +478,7 @@ export default function Home() {
               </span>
               <span><b>imgora</b><i>.in</i></span>
             </div>
-            <p>Private, browser-based HEIF to JPG — pre-optimised for the platforms you actually use.</p>
+            <p>Private, browser-based photo perfecter — any photo, from any phone, tuned for the platforms you actually use.</p>
           </div>
           <div className="foot-links">
             <Link href="/converter">Converter</Link>

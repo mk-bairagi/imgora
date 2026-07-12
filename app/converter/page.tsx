@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import JSZip from 'jszip';
 import { getDroppedFiles } from '../lib/getDroppedFiles';
+import PreviewEditor, { type Target, type EditParams } from './PreviewEditor';
 import './converter.css';
 
 // Each preset defines the recommended dimensions and JPEG quality for a specific platform.
@@ -36,6 +37,17 @@ interface FileEntry {
   url?: string;           // blob URL for the converted JPEG, set when status = 'done'
   convertedSize?: number; // output file size in bytes
   error?: string;         // error message when status = 'error'
+  params?: EditParams | null; // custom fine-tune settings saved from the preview editor
+}
+
+// Maps a preset's human-readable dim string to the worker's target geometry.
+// Fixed w×h presets crop-to-fill so the output is *exactly* the platform size.
+function presetTarget(pf: PlatformKey, dim: string): Target {
+  if (pf === 'custom') return { mode: 'original' };
+  const { w, h } = parseDim(dim);
+  if (w && h) return { mode: 'cover', w, h };
+  if (w) return { mode: 'width', w };
+  return { mode: 'original' };
 }
 
 // Parse a human-readable dimension string into pixel numbers.
@@ -59,6 +71,16 @@ function DownloadIcon() {
   return (
     <svg viewBox="0 0 14 14" fill="none">
       <path d="M7 2v8M3.5 7L7 10.5 10.5 7M2.5 12h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 14 14" fill="none" width="14" height="14">
+      <path d="M2 4.5h5.5M11.5 4.5H12M2 9.5h.5M6.5 9.5H12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+      <circle cx="9.5" cy="4.5" r="1.6" stroke="currentColor" strokeWidth="1.3"/>
+      <circle cx="4.5" cy="9.5" r="1.6" stroke="currentColor" strokeWidth="1.3"/>
     </svg>
   );
 }
@@ -123,41 +145,49 @@ function ConverterContent() {
     ]);
   }, [showDropError]);
 
-  // Convert every queued file in parallel, each in its own Web Worker
-  const convertAll = useCallback(async () => {
-    const toConvert = files.filter(f => f.status === 'queued');
+  // Output filename: original base + platform suffix, e.g. "photo_instagram.jpg"
+  const outNameFor = useCallback((origName: string) => {
+    const base = origName.replace(/\.[^.]+$/, '');
+    const suffix = activePf !== 'custom' ? '_' + activePf : '';
+    return base + suffix + '.jpg';
+  }, [activePf]);
+
+  // Convert the given entries in parallel, each in its own Web Worker.
+  // paramsOverride (from "Apply to all") wins over each entry's saved edits;
+  // otherwise entries use their own saved params, falling back to auto-enhance.
+  const convertEntries = useCallback(async (toConvert: FileEntry[], paramsOverride?: EditParams | null) => {
     if (toConvert.length === 0) return;
     setIsConverting(true);
+    const target = presetTarget(activePf, preset.dim);
 
     await Promise.all(
       toConvert.map(entry =>
         new Promise<void>(resolve => {
+          // Re-converting an entry replaces its blob — release the old one
+          if (entry.url) URL.revokeObjectURL(entry.url);
           // Mark as "converting" immediately so the UI shows a spinner
           setFiles(prev =>
             prev.map(f => f.id === entry.id ? { ...f, status: 'converting' } : f)
           );
-          const { w: targetW, h: targetH } = parseDim(preset.dim);
+          const params = paramsOverride !== undefined ? paramsOverride : (entry.params ?? null);
 
           // Spawn a dedicated worker per file — they run truly in parallel
           const worker = new Worker('/heic-worker.js');
-          worker.postMessage({ file: entry.file, index: 0, quality, targetW, targetH });
+          worker.postMessage({ cmd: 'oneshot', file: entry.file, target, quality, params });
 
           worker.onmessage = (e) => {
-            const { buffer, error } = e.data;
-            if (error) {
+            const { type, buffer, error } = e.data;
+            if (type === 'error' || error) {
               setFiles(prev =>
-                prev.map(f => f.id === entry.id ? { ...f, status: 'error', error } : f)
+                prev.map(f => f.id === entry.id ? { ...f, status: 'error', error: error || 'Conversion failed' } : f)
               );
             } else {
               // Turn the transferred ArrayBuffer into a blob URL the browser can download directly
               const blob = new Blob([buffer], { type: 'image/jpeg' });
               const url = URL.createObjectURL(blob);
-              // Append a platform suffix to the filename so e.g. "photo_instagram.jpg" is clear
-              const base = entry.origName.replace(/\.(heic|heif)$/i, '');
-              const suffix = activePf !== 'custom' ? '_' + activePf : '';
               setFiles(prev =>
                 prev.map(f => f.id === entry.id
-                  ? { ...f, status: 'done', url, name: base + suffix + '.jpg', convertedSize: blob.size }
+                  ? { ...f, status: 'done', url, name: outNameFor(f.origName), convertedSize: blob.size, params: params ?? f.params }
                   : f
                 )
               );
@@ -177,7 +207,12 @@ function ConverterContent() {
       )
     );
     setIsConverting(false);
-  }, [files, quality, activePf, preset]);
+  }, [activePf, preset, quality, outNameFor]);
+
+  const convertAll = useCallback(
+    () => convertEntries(files.filter(f => f.status === 'queued')),
+    [files, convertEntries]
+  );
 
   // Fetch all converted blobs by their object URLs and bundle them into a single ZIP download
   const downloadZip = useCallback(async () => {
@@ -199,6 +234,9 @@ function ConverterContent() {
   const hasFiles = files.length > 0;
   const doneCount = files.filter(f => f.status === 'done').length;
   const canConvert = !isConverting && files.some(f => f.status === 'queued');
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editingEntry = files.find(f => f.id === editingId) ?? null;
 
   return (
     <div className="converter">
@@ -224,8 +262,8 @@ function ConverterContent() {
           Drop a photo. <span className="serif">Pick where it&rsquo;s going.</span>
         </h1>
         <p className="lede">
-          imgora pre-tunes the JPG — dimensions, quality, colour profile — for the exact platform
-          you&rsquo;re sharing to. Everything happens in your browser.
+          imgora crops, sharpens and colour-tunes your photo for the exact platform you&rsquo;re
+          sharing to — then shows you a before/after preview to fine-tune. Everything happens in your browser.
         </p>
 
         {/* PLATFORM PICKER */}
@@ -333,6 +371,16 @@ function ConverterContent() {
                     <div className={`file-status ${f.status}`}>
                       {f.status}
                     </div>
+                    <button
+                      type="button"
+                      className="file-edit"
+                      disabled={f.status === 'converting'}
+                      onClick={() => setEditingId(f.id)}
+                      aria-label={`Preview and edit ${f.name}`}
+                      title="Preview & fine-tune"
+                    >
+                      <EditIcon />
+                    </button>
                     {f.status === 'done' && f.url ? (
                       <a href={f.url} download={f.name} className="file-download" aria-label={`Download ${f.name}`}>
                         <DownloadIcon />
@@ -427,6 +475,35 @@ function ConverterContent() {
           </aside>
         </div>
       </main>
+
+      {editingEntry && (
+        <PreviewEditor
+          file={editingEntry.file}
+          presetName={preset.name}
+          presetLabel={preset.label}
+          c1={preset.c1}
+          c2={preset.c2}
+          dim={preset.dim}
+          target={presetTarget(activePf, preset.dim)}
+          quality={quality}
+          outName={outNameFor(editingEntry.origName)}
+          multi={files.length > 1}
+          initialParams={editingEntry.params ?? null}
+          onClose={() => setEditingId(null)}
+          onApplied={(url, size, params) => {
+            setEditingId(null);
+            setFiles(prev => prev.map(f => {
+              if (f.id !== editingEntry.id) return f;
+              if (f.url) URL.revokeObjectURL(f.url);
+              return { ...f, status: 'done' as const, url, convertedSize: size, name: outNameFor(f.origName), params };
+            }));
+          }}
+          onApplyAll={files.length > 1 ? (params) => {
+            setEditingId(null);
+            convertEntries(files, params);
+          } : undefined}
+        />
+      )}
 
       <footer>
         © imgora.in · <Link href="/">back to home</Link>

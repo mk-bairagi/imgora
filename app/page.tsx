@@ -99,6 +99,57 @@ export default function Home() {
 
   return (
     <div className="landing" onMouseMove={handleMouseMove}>
+      {/* Schema.org JSON-LD — WebApplication + FAQ rich results */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': 'WebApplication',
+                name: 'imgora — Social Media Image Perfecter',
+                url: 'https://imgora.in/',
+                description:
+                  'Crop, sharpen, colour-tune and compress any photo for Instagram, WhatsApp, X and more — free, private, in your browser.',
+                applicationCategory: 'UtilitiesApplication',
+                operatingSystem: 'Any',
+                offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
+              },
+              {
+                '@type': 'FAQPage',
+                mainEntity: [
+                  {
+                    '@type': 'Question',
+                    name: 'What does imgora actually do?',
+                    acceptedAnswer: { '@type': 'Answer', text: 'imgora takes any photo from any phone — HEIC, JPG, PNG or WebP — and outputs a JPG that is exactly sized, cropped, sharpened and colour-tuned for the platform you’re sharing to. You get a before/after preview to fine-tune sharpness, brightness and the crop before you download.' },
+                  },
+                  {
+                    '@type': 'Question',
+                    name: 'Why does each platform need a different version of my photo?',
+                    acceptedAnswer: { '@type': 'Answer', text: 'Every social platform re-encodes whatever you upload with its own lossy compression. imgora pre-tunes the JPG to exactly what each platform wants, so there’s only one round of compression and your photo looks its best.' },
+                  },
+                  {
+                    '@type': 'Question',
+                    name: 'Are my photos private?',
+                    acceptedAnswer: { '@type': 'Answer', text: 'Completely. imgora processes everything in your browser — nothing is uploaded to any server. You can disconnect from the internet after the page loads and it will still work.' },
+                  },
+                  {
+                    '@type': 'Question',
+                    name: 'What happens to location data and EXIF?',
+                    acceptedAnswer: { '@type': 'Answer', text: 'All metadata is removed automatically from every converted file — capture date, camera info and GPS location are stripped, so your home location never gets baked into the photo you post.' },
+                  },
+                  {
+                    '@type': 'Question',
+                    name: 'Can I optimise multiple photos at once?',
+                    acceptedAnswer: { '@type': 'Answer', text: 'Yes. Drop a whole folder and you’ll get platform-optimised JPGs back, or download them as a single ZIP.' },
+                  },
+                ],
+              },
+            ],
+          }),
+        }}
+      />
       {/* Ambient blobs */}
       <div className="blob blob-a" />
       <div className="blob blob-b" />
@@ -482,9 +533,14 @@ export default function Home() {
             <p>Private, browser-based photo perfecter — any photo, from any phone, tuned for the platforms you actually use.</p>
           </div>
           <div className="foot-links">
-            <Link href="/converter">Converter</Link>
-            <Link href="/heif-to-jpg">HEIF → JPG</Link>
-            <a href="#faq">FAQ</a>
+            <Link href="/converter">Social media converter</Link>
+            <Link href="/heic-to-jpg">HEIC → JPG</Link>
+            <Link href="/png-to-jpg">PNG → JPG</Link>
+            <Link href="/webp-to-jpg">WebP → JPG</Link>
+            <Link href="/jpg-to-png">JPG → PNG</Link>
+            <Link href="/compress-image-to-20kb">Compress to 20 KB</Link>
+            <Link href="/compress-image-to-50kb">Compress to 50 KB</Link>
+            <Link href="/compress-image-to-100kb">Compress to 100 KB</Link>
             <Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
             <Link href="/privacy">Privacy</Link>
@@ -493,7 +549,7 @@ export default function Home() {
         </div>
         <div className="foot-bottom">
           <span>© 2026 imgora.in · Made for the open web.</span>
-          <span className="foot-version">v0.3.0</span>
+          <span className="foot-version">v0.5.0</span>
         </div>
       </footer>
     </div>

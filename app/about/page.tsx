@@ -35,8 +35,8 @@ export default function AboutPage() {
       <p>Three tools, one engine:</p>
       <ul>
         <li><strong><Link href="/converter">The Perfecter</Link></strong> — platform-perfect photos for Instagram, WhatsApp, X, LinkedIn and more;</li>
-        <li><strong>The Optimiser</strong> — smart compression that keeps photos looking great at a fraction of the size;</li>
-        <li><strong><Link href="/heif-to-jpg">The Converter</Link></strong> — HEIC/HEIF to JPG and between common formats, full resolution.</li>
+        <li><strong><Link href="/compress-image-to-50kb">The Optimiser</Link></strong> — compress any photo to an exact size limit like 20, 50 or 100 KB for forms and portals;</li>
+        <li><strong><Link href="/heic-to-jpg">The Converter</Link></strong> — HEIC to JPG, PNG, WebP and between common formats, full resolution.</li>
       </ul>
 
       <h2>Privacy isn&rsquo;t a feature — it&rsquo;s the architecture</h2>

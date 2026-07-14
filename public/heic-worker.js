@@ -208,6 +208,10 @@ function renderCanvas(state, params, maxSide) {
   const out = new OffscreenCanvas(outW, outH);
   const ctx = out.getContext('2d', { willReadFrequently: true });
   ctx.imageSmoothingQuality = 'high';
+  // JPEG has no alpha — flatten transparent sources (PNG logos etc.) onto white,
+  // otherwise they'd come out black
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, outW, outH);
   ctx.drawImage(stage, region.sx, region.sy, region.sw, region.sh, 0, 0, outW, outH);
 
   const id = ctx.getImageData(0, 0, outW, outH);
@@ -249,6 +253,8 @@ function postImagePayload(type, extra, imageData) {
 
 async function legacyConvert(d) {
   const { file, index, quality, targetW, targetH } = d;
+  const fmt = ['image/png', 'image/webp', 'image/jpeg'].includes(d.outputFormat)
+    ? d.outputFormat : 'image/jpeg';
   try {
     let srcW, srcH, imageData;
     if (isHeic(file)) {
@@ -269,13 +275,77 @@ async function legacyConvert(d) {
     const src = new OffscreenCanvas(srcW, srcH);
     src.getContext('2d').putImageData(new ImageData(imageData.data, srcW, srcH), 0, 0);
     const canvas = new OffscreenCanvas(outW, outH);
-    canvas.getContext('2d').drawImage(src, 0, 0, outW, outH);
-    const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: quality / 100 });
+    const cctx = canvas.getContext('2d');
+    cctx.imageSmoothingQuality = 'high';
+    if (fmt === 'image/jpeg') {
+      // flatten transparency onto white — JPEG has no alpha channel
+      cctx.fillStyle = '#ffffff';
+      cctx.fillRect(0, 0, outW, outH);
+    }
+    cctx.drawImage(src, 0, 0, outW, outH);
+    const blob = await canvas.convertToBlob(
+      fmt === 'image/png' ? { type: fmt } : { type: fmt, quality: quality / 100 }
+    );
     const arrayBuffer = await blob.arrayBuffer();
-    self.postMessage({ index, buffer: arrayBuffer, width: outW, height: outH }, [arrayBuffer]);
+    self.postMessage(
+      { index, buffer: arrayBuffer, width: outW, height: outH, actualType: blob.type },
+      [arrayBuffer]
+    );
   } catch (err) {
     self.postMessage({ index, error: err.message });
   }
+}
+
+/* ================= compress to a target file size ================= */
+
+// Finds the highest JPEG quality (30–92) that fits under targetBytes at the
+// given canvas size; returns null when even q30 is too big.
+async function bestQualityUnder(canvas, targetBytes) {
+  let lo = 30, hi = 92, best = null;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: mid / 100 });
+    if (blob.size <= targetBytes) { best = { blob, quality: mid }; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  return best;
+}
+
+async function compressToTarget(d) {
+  const targetKB = Math.max(5, d.targetKB | 0);
+  const targetBytes = targetKB * 1024;
+  const state = await decodeToState(d.file, { mode: 'original' });
+  const srcMax = Math.max(state.srcW, state.srcH);
+  const NEUTRAL = { sharp: 0, bri: 0, con: 0, sat: 0, focusX: 0.5, focusY: 0.5, p3Fix: 'auto' };
+
+  // Initial size guess: JPEG ≈ 0.13 bytes/pixel around q75
+  let maxSide = Math.min(srcMax, Math.max(200, Math.round(Math.sqrt(targetBytes / 0.13) * 1.15)));
+  let fit = null;
+
+  for (let attempt = 0; attempt < 6 && !fit; attempt++) {
+    const r = renderCanvas(state, NEUTRAL, maxSide);
+    const best = await bestQualityUnder(r.canvas, targetBytes);
+    if (best) { fit = { ...best, width: r.outW, height: r.outH }; break; }
+    if (maxSide <= 200) break;
+    maxSide = Math.max(200, Math.round(maxSide * 0.72));
+  }
+
+  // Lots of headroom left → one retry at higher resolution for a sharper result
+  if (fit && fit.quality >= 90 && fit.blob.size < targetBytes * 0.7 && fit.width < state.srcW) {
+    const bigger = Math.min(srcMax, Math.round(maxSide * 1.5));
+    if (bigger > maxSide) {
+      const r2 = renderCanvas(state, NEUTRAL, bigger);
+      const best2 = await bestQualityUnder(r2.canvas, targetBytes);
+      if (best2) fit = { ...best2, width: r2.outW, height: r2.outH };
+    }
+  }
+
+  if (!fit) throw new Error(`Couldn't fit under ${targetKB} KB — try a larger size limit`);
+  const buffer = await fit.blob.arrayBuffer();
+  self.postMessage(
+    { type: 'compress', buffer, width: fit.width, height: fit.height, quality: fit.quality, size: fit.blob.size },
+    [buffer]
+  );
 }
 
 /* ================= message protocol ================= */
@@ -288,6 +358,11 @@ self.onmessage = async function (e) {
   if (!d.cmd) { legacyConvert(d); return; }
 
   try {
+    if (d.cmd === 'compress') {
+      await compressToTarget(d);
+      return;
+    }
+
     if (d.cmd === 'oneshot') {
       // Full pipeline in one go with auto (or supplied) params — used by batch convert
       const state = await decodeToState(d.file, d.target);

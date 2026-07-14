@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { getDroppedFiles } from '../lib/getDroppedFiles';
+import { track } from '../lib/analytics';
 import '../landing.css';
 import './heif-to-jpg.css';
 
@@ -111,10 +112,12 @@ export default function HeifToJpgPage() {
           worker.onmessage = (e) => {
             const { buffer, error } = e.data;
             if (error) {
+              track('convert_error', { tool: 'heif-to-jpg', message: String(error).slice(0, 80) });
               setFiles(prev =>
                 prev.map(f => f.id === entry.id ? { ...f, status: 'error', error } : f)
               );
             } else {
+              track('convert', { tool: 'heif-to-jpg', quality: q });
               const blob = new Blob([buffer], { type: 'image/jpeg' });
               const url = URL.createObjectURL(blob);
               const base = entry.origName.replace(/\.(heic|heif)$/i, '');
@@ -331,7 +334,13 @@ export default function HeifToJpgPage() {
                 </div>
                 {f.status === 'done' && f.url
                   ? (
-                    <a href={f.url} download={f.name} className="htj-dl-btn" aria-label={`Download ${f.name}`}>
+                    <a
+                      href={f.url}
+                      download={f.name}
+                      className="htj-dl-btn"
+                      aria-label={`Download ${f.name}`}
+                      onClick={() => track('download', { tool: 'heif-to-jpg' })}
+                    >
                       <DownloadIcon /> Download
                     </a>
                   ) : (

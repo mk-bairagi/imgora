@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import JSZip from 'jszip';
 import { getDroppedFiles } from '../lib/getDroppedFiles';
+import { track } from '../lib/analytics';
 import PreviewEditor, { type Target, type EditParams } from './PreviewEditor';
 import './converter.css';
 
@@ -178,10 +179,12 @@ function ConverterContent() {
           worker.onmessage = (e) => {
             const { type, buffer, error } = e.data;
             if (type === 'error' || error) {
+              track('convert_error', { platform: activePf, message: String(error || 'unknown').slice(0, 80) });
               setFiles(prev =>
                 prev.map(f => f.id === entry.id ? { ...f, status: 'error', error: error || 'Conversion failed' } : f)
               );
             } else {
+              track('convert', { platform: activePf, tool: 'converter' });
               // Turn the transferred ArrayBuffer into a blob URL the browser can download directly
               const blob = new Blob([buffer], { type: 'image/jpeg' });
               const url = URL.createObjectURL(blob);
@@ -224,6 +227,7 @@ function ConverterContent() {
       zip.file(f.name, await res.blob());
     }
     const blob = await zip.generateAsync({ type: 'blob' });
+    track('download_zip', { count: done.length });
     // Trigger browser download by creating a temporary <a> and clicking it programmatically
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -382,7 +386,13 @@ function ConverterContent() {
                       <EditIcon />
                     </button>
                     {f.status === 'done' && f.url ? (
-                      <a href={f.url} download={f.name} className="file-download" aria-label={`Download ${f.name}`}>
+                      <a
+                        href={f.url}
+                        download={f.name}
+                        className="file-download"
+                        aria-label={`Download ${f.name}`}
+                        onClick={() => track('download', { platform: activePf, tool: 'converter' })}
+                      >
                         <DownloadIcon />
                       </a>
                     ) : (
@@ -491,6 +501,7 @@ function ConverterContent() {
           initialParams={editingEntry.params ?? null}
           onClose={() => setEditingId(null)}
           onApplied={(url, size, params) => {
+            track('editor_export', { platform: activePf });
             setEditingId(null);
             setFiles(prev => prev.map(f => {
               if (f.id !== editingEntry.id) return f;

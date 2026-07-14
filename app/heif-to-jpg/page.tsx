@@ -523,8 +523,11 @@ export default function HeifToJpgPage() {
           <div className="foot-links">
             <Link href="/converter">Converter</Link>
             <Link href="/heif-to-jpg">HEIF → JPG</Link>
-            <a href="#platforms">Platforms</a>
             <a href="#faq">FAQ</a>
+            <Link href="/about">About</Link>
+            <Link href="/contact">Contact</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
           </div>
         </div>
         <div className="foot-bottom">

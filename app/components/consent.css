@@ -1,0 +1,20 @@
+.consent {
+  position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 100;
+  max-width: 560px; margin: 0 auto;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 14px 18px; border-radius: 14px;
+  background: rgba(28, 25, 23, 0.94); color: #fafaf9;
+  box-shadow: 0 18px 50px -12px rgba(28, 25, 23, 0.45);
+  font-family: var(--sans); font-size: 13px; line-height: 1.5;
+}
+.consent-text { margin: 0; flex: 1 1 280px; }
+.consent-text a { color: #fdba74; text-decoration: underline; }
+.consent-actions { display: flex; gap: 8px; margin-left: auto; }
+.consent-btn {
+  padding: 9px 16px; border-radius: 999px; font-size: 13px; font-weight: 500;
+  border: 1px solid rgba(250, 250, 249, 0.3); background: transparent; color: #fafaf9;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.consent-btn:hover { background: rgba(250, 250, 249, 0.1); }
+.consent-btn.solid { background: var(--accent); border-color: var(--accent); }
+.consent-btn.solid:hover { background: var(--accent-2); }

@@ -517,7 +517,7 @@ function ConverterContent() {
       )}
 
       <footer>
-        © imgora.in · <Link href="/">back to home</Link>
+        © imgora.in · <Link href="/">Home</Link> · <Link href="/about">About</Link> · <Link href="/contact">Contact</Link> · <Link href="/privacy">Privacy</Link> · <Link href="/terms">Terms</Link>
       </footer>
     </div>
   );

@@ -157,6 +157,24 @@ h1.headline .serif {
   50%       { transform: translateX(-50%) translateY(7px); }
 }
 
+/* On phones the hero stacks vertically and the centered chevron lands on the
+   CTA buttons — move it to the bottom-right corner as a solid floating bubble */
+@media (max-width: 980px) {
+  .hero-scroll-hint {
+    left: auto;
+    right: 18px;
+    bottom: 22px;
+    background: var(--bg-2);
+    border-color: rgba(234, 88, 12, 0.45);
+    box-shadow: 0 8px 24px -8px rgba(28, 25, 23, 0.3);
+    animation-name: bounce-hint-corner;
+  }
+}
+@keyframes bounce-hint-corner {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(7px); }
+}
+
 /* ============ 3D PHONE SCENE ============ */
 .scene-wrap {
   position: relative;

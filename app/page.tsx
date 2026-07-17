@@ -168,6 +168,7 @@ export default function Home() {
         </Link>
         <ul>
           <li><a href="#platforms">For social</a></li>
+          <li><a href="#tools">Free tools</a></li>
           <li><a href="#how">How it works</a></li>
           <li><a href="#faq">FAQ</a></li>
         </ul>
@@ -467,6 +468,67 @@ export default function Home() {
         </div>
         <div className="how-cta">
           <Link href="/converter" className="btn primary lg">Try it now — it&rsquo;s free</Link>
+        </div>
+      </section>
+
+      {/* FREE TOOLS */}
+      <section id="tools" className="reveal">
+        <div className="sec-eyebrow">Free tools</div>
+        <h2 className="sec-title">More than social. <span className="serif">Compress &amp; convert anything.</span></h2>
+        <p className="sec-sub">
+          The same private, in-browser engine powers a full set of everyday image tools —
+          compress photos to exact form limits, convert between formats, all without uploading anything.
+        </p>
+
+        <div className="plats">
+          <Link href="/compress-image-to-20kb" className="plat" style={{ '--ic1': '#16a34a', '--ic2': '#15803d' } as React.CSSProperties}>
+            <div className="plat-icon">20</div>
+            <div className="plat-title">Compress to 20 KB</div>
+            <div className="plat-sub">Signatures &amp; exam forms</div>
+            <div className="plat-spec"><span><b>OUT</b> JPG ≤ 20 KB</span><span><b>AUTO</b> size</span></div>
+          </Link>
+          <Link href="/compress-image-to-50kb" className="plat" style={{ '--ic1': '#0d9488', '--ic2': '#0f766e' } as React.CSSProperties}>
+            <div className="plat-icon">50</div>
+            <div className="plat-title">Compress to 50 KB</div>
+            <div className="plat-sub">Application photos</div>
+            <div className="plat-spec"><span><b>OUT</b> JPG ≤ 50 KB</span><span><b>AUTO</b> size</span></div>
+          </Link>
+          <Link href="/compress-image-to-100kb" className="plat" style={{ '--ic1': '#0891b2', '--ic2': '#0e7490' } as React.CSSProperties}>
+            <div className="plat-icon">100</div>
+            <div className="plat-title">Compress to 100 KB</div>
+            <div className="plat-sub">Portals, email &amp; web</div>
+            <div className="plat-spec"><span><b>OUT</b> JPG ≤ 100 KB</span><span><b>AUTO</b> size</span></div>
+          </Link>
+          <Link href="/heic-to-jpg" className="plat" style={{ '--ic1': '#a3a3a3', '--ic2': '#525252' } as React.CSSProperties}>
+            <div className="plat-icon"></div>
+            <div className="plat-title">HEIC → JPG</div>
+            <div className="plat-sub">iPhone photos, opened anywhere</div>
+            <div className="plat-spec"><span><b>IN</b> .heic</span><span><b>OUT</b> .jpg</span></div>
+          </Link>
+          <Link href="/png-to-jpg" className="plat" style={{ '--ic1': '#7c3aed', '--ic2': '#6d28d9' } as React.CSSProperties}>
+            <div className="plat-icon">P»J</div>
+            <div className="plat-title">PNG → JPG</div>
+            <div className="plat-sub">5–10× smaller files</div>
+            <div className="plat-spec"><span><b>IN</b> .png</span><span><b>OUT</b> .jpg</span></div>
+          </Link>
+          <Link href="/webp-to-jpg" className="plat" style={{ '--ic1': '#2563eb', '--ic2': '#1d4ed8' } as React.CSSProperties}>
+            <div className="plat-icon">W»J</div>
+            <div className="plat-title">WebP → JPG</div>
+            <div className="plat-sub">Web images, unlocked</div>
+            <div className="plat-spec"><span><b>IN</b> .webp</span><span><b>OUT</b> .jpg</span></div>
+          </Link>
+          <Link href="/jpg-to-png" className="plat" style={{ '--ic1': '#db2777', '--ic2': '#be185d' } as React.CSSProperties}>
+            <div className="plat-icon">J»P</div>
+            <div className="plat-title">JPG → PNG</div>
+            <div className="plat-sub">Lossless from here on</div>
+            <div className="plat-spec"><span><b>IN</b> .jpg</span><span><b>OUT</b> .png</span></div>
+          </Link>
+          <Link href="/converter" className="plat" data-pf="web">
+            <div className="plat-icon">✦</div>
+            <div className="plat-title">Social presets</div>
+            <div className="plat-sub">The full perfecter</div>
+            <div className="plat-spec"><span><b>ALL</b> platforms</span><span><b>+</b> editor</span></div>
+          </Link>
         </div>
       </section>
 
